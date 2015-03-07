@@ -17,8 +17,8 @@ function html2canvas(nodeList, options) {
     var index = html2canvasCloneIndex++;
     options = options || {};
     if (options.logging) {
-        window.html2canvas.logging = true;
-        window.html2canvas.start = Date.now();
+        html2canvas.logging = true;
+        html2canvas.start = Date.now();
     }
 
     options.async = typeof(options.async) === "undefined" ? true : options.async;
@@ -56,10 +56,6 @@ html2canvas.CanvasRenderer = CanvasRenderer;
 html2canvas.NodeContainer = NodeContainer;
 html2canvas.log = log;
 html2canvas.utils = utils;
-
-module.exports = (typeof(document) === "undefined" || typeof(Object.create) !== "function" || typeof(document.createElement("canvas").getContext) !== "function") ? function() {
-    return Promise.reject("No canvas support");
-} : html2canvas;
 
 function renderDocument(document, options, windowWidth, windowHeight, html2canvasIndex) {
     return createWindowClone(document, document, windowWidth, windowHeight, options, document.defaultView.pageXOffset, document.defaultView.pageYOffset).then(function(container) {
@@ -145,3 +141,7 @@ function absoluteUrl(url) {
     link.href = link.href;
     return link;
 }
+
+module.exports = (typeof(document) === "undefined" || typeof(Object.create) !== "function" || typeof(document.createElement("canvas").getContext) !== "function") ? function() {
+    return Promise.reject("No canvas support");
+} : html2canvas;

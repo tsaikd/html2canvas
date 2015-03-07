@@ -191,19 +191,26 @@ NodeContainer.prototype.parseBackgroundRepeat = function(index) {
     return this.cssList("backgroundRepeat", index)[0];
 };
 
+NodeContainer.prototype.TEXT_SHADOW_PROPERTY = /(?!\([0-9\s.]+),(?![0-9\s.,]+\))/g;
+NodeContainer.prototype.TEXT_SHADOW_VALUES = /(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
+
 NodeContainer.prototype.parseTextShadows = function() {
     var textShadow = this.css("textShadow");
     var results = [];
 
     if (textShadow && textShadow !== 'none') {
-        var shadows = textShadow.match(this.TEXT_SHADOW_PROPERTY);
+        var shadows = textShadow.split(this.TEXT_SHADOW_PROPERTY);
         for (var i = 0; shadows && (i < shadows.length); i++) {
             var s = shadows[i].match(this.TEXT_SHADOW_VALUES);
+
+            var ci = s[0].indexOf('rgb') > -1 ? 0 : 3;
+            var color = new Color(s[ci]);
+
             results.push({
-                color: new Color(s[0]),
-                offsetX: s[1] ? parseFloat(s[1].replace('px', '')) : 0,
-                offsetY: s[2] ? parseFloat(s[2].replace('px', '')) : 0,
-                blur: s[3] ? s[3].replace('px', '') : 0
+                color: color,
+                offsetX: s[(ci + 1) % 4] ? parseFloat(s[(ci + 1) % 4].replace('px', '')) : 0,
+                offsetY: s[(ci + 2) % 4] ? parseFloat(s[(ci + 2) % 4].replace('px', '')) : 0,
+                blur: s[(ci + 3) % 4] ? s[(ci + 3) % 4].replace('px', '') : 0
             });
         }
     }
@@ -259,8 +266,6 @@ NodeContainer.prototype.getValue = function() {
 };
 
 NodeContainer.prototype.MATRIX_PROPERTY = /(matrix)\((.+)\)/;
-NodeContainer.prototype.TEXT_SHADOW_PROPERTY = /((rgba|rgb)\([^\)]+\)(\s-?\d+px){0,})/g;
-NodeContainer.prototype.TEXT_SHADOW_VALUES = /(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
 NodeContainer.prototype.CLIP = /^rect\((\d+)px,? (\d+)px,? (\d+)px,? (\d+)px\)$/;
 
 function selectionValue(node) {

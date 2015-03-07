@@ -446,7 +446,7 @@ NodeParser.prototype.paintText = function(container) {
     this.renderer.font(container.parent.color('color'), container.parent.css('fontStyle'), container.parent.css('fontVariant'), weight, size, family);
     if (shadows.length) {
         // TODO: support multiple text shadows
-        this.renderer.fontShadow(shadows[0].color, shadows[0].offsetX, shadows[0].offsetY, shadows[0].blur);
+        this.renderer.setShadow(shadows[0].color, shadows[0].offsetX, shadows[0].offsetY, shadows[0].blur);
     } else {
         this.renderer.clearShadow();
     }

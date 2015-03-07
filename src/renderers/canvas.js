@@ -93,10 +93,10 @@ CanvasRenderer.prototype.font = function(color, style, variant, weight, size, fa
     this.setFillStyle(color).font = [style, variant, weight, size, family].join(" ").split(",")[0];
 };
 
-CanvasRenderer.prototype.fontShadow = function(color, offsetX, offsetY, blur) {
+CanvasRenderer.prototype.setShadow = function(color, offsetX, offsetY, blur) {
     this.setVariable("shadowColor", color.toString())
-        .setVariable("shadowOffsetY", offsetX)
-        .setVariable("shadowOffsetX", offsetY)
+        .setVariable("shadowOffsetX", offsetX)
+        .setVariable("shadowOffsetY", offsetY)
         .setVariable("shadowBlur", blur);
 };
 

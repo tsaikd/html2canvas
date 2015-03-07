@@ -1,4 +1,3 @@
-/*global module:false*/
 var _ =  require('lodash'), path = require('path');
 var proxy = require('html2canvas-proxy');
 
@@ -67,18 +66,6 @@ module.exports = function(grunt) {
                     },
                     banner: meta.banner
                 }
-            },
-            svg: {
-                src: [
-                    'src/fabric/dist/fabric.js'
-                ],
-                dest: 'dist/<%= pkg.name %>.svg.js',
-                options:{
-                    browserifyOptions: {
-                        standalone: 'html2canvas.svg'
-                    },
-                    banner: meta.banner
-                }
             }
         },
         connect: {
@@ -136,31 +123,17 @@ module.exports = function(grunt) {
                 }
             }
         },
-        execute: {
-            fabric: {
-                options: {
-                    args: ['modules=' + ['text','serialization',
-                        'parser', 'gradient', 'pattern', 'shadow', 'freedrawing',
-                        'image_filters', 'serialization'].join(","), 'no-es5-compat', 'dest=' + path.resolve(__dirname, 'src/fabric/dist/') + '/']
-                },
-                src: ['src/fabric/build.js']
-            }
-        },
         uglify: {
             dist: {
                 src: ['<%= browserify.dist.dest %>'],
                 dest: 'dist/<%= pkg.name %>.min.js'
-            },
-            svg: {
-                src: ['<%= browserify.svg.dest %>'],
-                dest: 'dist/<%= pkg.name %>.svg.min.js'
             },
             options: {
                 banner: meta.banner
             }
         },
         watch: {
-            files: ['src/**/*', '!src/fabric/**/*'],
+            files: ['src/**/*'],
             tasks: ['jshint', 'build']
         },
         jshint: {
@@ -209,11 +182,10 @@ module.exports = function(grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-connect');
-    grunt.loadNpmTasks('grunt-execute');
     grunt.loadNpmTasks('grunt-mocha-cli');
 
     grunt.registerTask('server', ['connect:cors', 'connect:proxy', 'connect:altServer', 'connect:server']);
-    grunt.registerTask('build', ['execute', 'browserify', 'uglify']);
+    grunt.registerTask('build', ['browserify', 'uglify']);
     grunt.registerTask('default', ['jshint', 'build', 'mochacli', 'connect:altServer', 'mocha_phantomjs']);
     grunt.registerTask('travis', ['jshint', 'build', 'connect:altServer', 'connect:ci', 'connect:proxy', 'connect:cors', 'mocha_phantomjs', 'webdriver']);
 

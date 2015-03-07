@@ -1,5 +1,6 @@
 var SVGContainer = require('./svgcontainer');
 var Promise = require('./promise');
+var fabric = require('../vendor/fabric').fabric;
 
 function SVGNodeContainer(node, _native) {
     this.src = node;
@@ -14,10 +15,8 @@ function SVGNodeContainer(node, _native) {
         if (self.image.complete === true) {
             resolve(self.image);
         }
-    }) : this.hasFabric().then(function() {
-        return new Promise(function(resolve) {
-            window.html2canvas.svg.fabric.parseSVGDocument(node, self.createCanvas.call(self, resolve));
-        });
+    }) : new Promise(function(resolve) {
+        fabric.parseSVGDocument(node, self.createCanvas.call(self, resolve));
     });
 }
 
