@@ -67,6 +67,7 @@ Renderer.prototype.renderBackgroundImage = function(container, bounds, borderDat
             }
             break;
         case "linear-gradient":
+        case "radial-gradient":
         case "gradient":
             var gradientImage = this.images.get(backgroundImage.value);
             if (gradientImage) {

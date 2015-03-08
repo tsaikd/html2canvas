@@ -1,5 +1,6 @@
 var Renderer = require('./Renderer');
 var LinearGradientContainer = require('../gradient/LinearGradientContainer');
+var RadialGradientContainer = require('../gradient/RadialGradientContainer');
 var log = require('../log');
 
 function CanvasRenderer(width, height) {
@@ -147,18 +148,27 @@ CanvasRenderer.prototype.renderBackgroundRepeat = function(imageContainer, backg
 };
 
 CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, bounds) {
+    var gradient;
     if (gradientImage instanceof LinearGradientContainer) {
-        var gradient = this.ctx.createLinearGradient(
+        gradient = this.ctx.createLinearGradient(
             bounds.left + bounds.width * gradientImage.x0,
-            bounds.left + bounds.height * gradientImage.y0,
+            bounds.top + bounds.height * gradientImage.y0,
             bounds.left + bounds.width * gradientImage.x1,
-            bounds.left + bounds.height * gradientImage.y1);
-
-        gradientImage.colorStops.forEach(function(colorStop) {
-            gradient.addColorStop(colorStop.stop, colorStop.color.toString());
-        });
-        this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, gradient);
+            bounds.top + bounds.height * gradientImage.y1);
+    } else if (gradientImage instanceof RadialGradientContainer) {
+      gradient = this.ctx.createRadialGradient(
+          bounds.left + bounds.width * gradientImage.x0,
+          bounds.top + bounds.height * gradientImage.y0,
+          gradientImage.r0,
+          bounds.left + bounds.width * gradientImage.x1,
+          bounds.top + bounds.height * gradientImage.y1,
+          gradientImage.r1);
     }
+
+    gradientImage.colorStops.forEach(function(colorStop) {
+        gradient.addColorStop(colorStop.stop, colorStop.color.toString());
+    });
+    this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, gradient);
 };
 
 CanvasRenderer.prototype.resizeImage = function(imageContainer, size) {

@@ -7,6 +7,7 @@ var FrameContainer = require('./framecontainer');
 var SVGContainer = require('./svg/SvgContainer');
 var SVGNodeContainer = require('./svg/SvgNodeContainer');
 var LinearGradientContainer = require('./gradient/LinearGradientContainer');
+var RadialGradientContainer = require('./gradient/RadialGradientContainer');
 var WebkitGradientContainer = require('./gradient/WebKitGradientContainer');
 var bind = require('./utils').bind;
 
@@ -76,6 +77,8 @@ ImageLoader.prototype.loadImage = function(imageData) {
         }
     } else if (imageData.method === "linear-gradient") {
         return new LinearGradientContainer(imageData);
+    } else if (imageData.method === "radial-gradient") {
+        return new RadialGradientContainer(imageData);
     } else if (imageData.method === "gradient") {
         return new WebkitGradientContainer(imageData);
     } else if (imageData.method === "svg") {
