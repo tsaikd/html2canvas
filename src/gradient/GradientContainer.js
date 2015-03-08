@@ -1,4 +1,4 @@
-var Promise = require('./promise');
+var Promise = require('../promise');
 
 function GradientContainer(imageData) {
     this.src = imageData.value;

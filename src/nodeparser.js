@@ -489,7 +489,6 @@ var borderColorTransforms = {
 
 NodeParser.prototype.parseBorders = function(container) {
     var nodeBounds = container.parseBounds();
-    var radius = getBorderRadiusData(container);
     var borders = ["Top", "Right", "Bottom", "Left"].map(function(side, index) {
         var style = container.css('border' + side + 'Style');
         var color = container.color('border' + side + 'Color');
@@ -503,6 +502,7 @@ NodeParser.prototype.parseBorders = function(container) {
             args: null
         };
     });
+    var radius = getBorderRadiusData(container, borders);
     var borderPoints = calculateCurvePoints(nodeBounds, radius, borders);
 
     return {
@@ -746,14 +746,25 @@ function noLetterSpacing(container) {
     return (/^(normal|none|0px)$/.test(container.parent.css("letterSpacing")));
 }
 
-function getBorderRadiusData(container) {
+function getBorderRadiusData(container, borders) {
+    var bounds = container.parseBounds();
     return ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map(function(side) {
         var value = container.css('border' + side + 'Radius');
         var arr = value.split(" ");
         if (arr.length <= 1) {
             arr[1] = arr[0];
         }
-        return arr.map(asInt);
+
+        arr.forEach(function(val) {
+          if(val.indexOf('%') != -1) {
+            var size;
+
+            size = (arr.indexOf(val) === 0) ? bounds.height : bounds.width;
+            arr[arr.indexOf(val)] = (asFloat(val) * 0.01) * size - 1;
+          }
+        });
+
+        return arr.map(asFloat);
     });
 }
 
@@ -808,8 +819,8 @@ function hasOpacity(container) {
     return container.getOpacity() < 1;
 }
 
-function asInt(value) {
-    return parseInt(value, 10);
+function asFloat(value) {
+    return parseFloat(value);
 }
 
 function getWidth(border) {

@@ -1,5 +1,5 @@
-var Renderer = require('../renderer');
-var LinearGradientContainer = require('../lineargradientcontainer');
+var Renderer = require('./Renderer');
+var LinearGradientContainer = require('../gradient/LinearGradientContainer');
 var log = require('../log');
 
 function CanvasRenderer(width, height) {
@@ -150,9 +150,10 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
     if (gradientImage instanceof LinearGradientContainer) {
         var gradient = this.ctx.createLinearGradient(
             bounds.left + bounds.width * gradientImage.x0,
-            bounds.top + bounds.height * gradientImage.y0,
-            bounds.left +  bounds.width * gradientImage.x1,
-            bounds.top +  bounds.height * gradientImage.y1);
+            bounds.left + bounds.height * gradientImage.y0,
+            bounds.left + bounds.width * gradientImage.x1,
+            bounds.left + bounds.height * gradientImage.y1);
+
         gradientImage.colorStops.forEach(function(colorStop) {
             gradient.addColorStop(colorStop.stop, colorStop.color.toString());
         });

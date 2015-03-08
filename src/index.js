@@ -1,6 +1,6 @@
 var Promise = require('./promise');
 var Support = require('./support');
-var CanvasRenderer = require('./renderers/canvas');
+var CanvasRenderer = require('./renderer/CanvasRenderer');
 var ImageLoader = require('./imageloader');
 var NodeParser = require('./nodeparser');
 var NodeContainer = require('./nodecontainer');

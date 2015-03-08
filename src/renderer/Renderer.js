@@ -1,4 +1,4 @@
-var log = require('./log');
+var log = require('../log');
 
 function Renderer(width, height, images, options, document) {
     this.width = width;

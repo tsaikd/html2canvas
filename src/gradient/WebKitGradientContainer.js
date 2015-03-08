@@ -1,4 +1,4 @@
-var GradientContainer = require('./gradientcontainer');
+var GradientContainer = require('./GradientContainer');
 
 function WebkitGradientContainer(imageData) {
     GradientContainer.apply(this, arguments);

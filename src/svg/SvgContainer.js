@@ -1,7 +1,7 @@
-var Promise = require('./promise');
-var XHR = require('./xhr');
-var decode64 = require('./utils').decode64;
-var fabric = require('../vendor/fabric').fabric;
+var Promise = require('../promise');
+var XHR = require('../xhr');
+var decode64 = require('../utils').decode64;
+var fabric = require('../../vendor/fabric').fabric;
 
 function SVGContainer(src) {
     this.src = src;

@@ -1,5 +1,5 @@
-var GradientContainer = require('./gradientcontainer');
-var Color = require('./color');
+var GradientContainer = require('./GradientContainer');
+var Color = require('../color');
 
 function LinearGradientContainer(imageData) {
     GradientContainer.apply(this, arguments);
@@ -10,18 +10,22 @@ function LinearGradientContainer(imageData) {
     if (hasDirection) {
         imageData.args[0].split(" ").reverse().forEach(function(position) {
             switch(position) {
+            case "0deg":
             case "left":
                 this.x0 = 0;
                 this.x1 = 1;
                 break;
+            case "90deg":
             case "top":
                 this.y0 = 0;
                 this.y1 = 1;
                 break;
+            case "180deg":
             case "right":
                 this.x0 = 1;
                 this.x1 = 0;
                 break;
+            case "270deg":
             case "bottom":
                 this.y0 = 1;
                 this.y1 = 0;
@@ -33,6 +37,32 @@ function LinearGradientContainer(imageData) {
                 this.x0 = this.x1;
                 this.x1 = x0;
                 this.y1 = y0;
+                break;
+            default:
+                if(position.indexOf('deg') != -1) {
+                    var deg = parseFloat(position.substr(0, position.length - 3));
+                    while(deg < 0) {
+                      deg += 360;
+                    }
+                    deg = deg % 360;
+
+                    var rad = (deg * (Math.PI / 180));
+
+                    var slope = Math.tan(rad);
+                    var pSlope = 1 / slope;
+
+                    var corner = [ deg >= 180 ? -0.5 : 0.5, deg < 80 && deg >= 270 ? 0.5 : 0.5 ];
+
+                    var c = corner[1] - pSlope * corner[0];
+                    var endX = c / (slope - pSlope);
+                    var endY = pSlope * endX + c;
+
+                    this.x0 = 0.5 - endX;
+                    this.y0 = 0.5 + endY;
+
+                    this.x1 = 0.5 + endX;
+                    this.y1 = 0.5 - endY;
+                }
                 break;
             }
         }, this);

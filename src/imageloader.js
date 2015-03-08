@@ -4,10 +4,10 @@ var ImageContainer = require('./imagecontainer');
 var DummyImageContainer = require('./dummyimagecontainer');
 var ProxyImageContainer = require('./proxyimagecontainer');
 var FrameContainer = require('./framecontainer');
-var SVGContainer = require('./svgcontainer');
-var SVGNodeContainer = require('./svgnodecontainer');
-var LinearGradientContainer = require('./lineargradientcontainer');
-var WebkitGradientContainer = require('./webkitgradientcontainer');
+var SVGContainer = require('./svg/SvgContainer');
+var SVGNodeContainer = require('./svg/SvgNodeContainer');
+var LinearGradientContainer = require('./gradient/LinearGradientContainer');
+var WebkitGradientContainer = require('./gradient/WebKitGradientContainer');
 var bind = require('./utils').bind;
 
 function ImageLoader(options, support) {

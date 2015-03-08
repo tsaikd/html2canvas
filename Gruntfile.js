@@ -58,7 +58,7 @@ module.exports = function(grunt) {
 
         browserify: {
             dist: {
-                src: ['src/core.js'],
+                src: ['src/index.js'],
                 dest: 'dist/<%= pkg.name %>.js',
                 options: {
                     browserifyOptions: {
@@ -134,7 +134,7 @@ module.exports = function(grunt) {
         },
         watch: {
             files: ['src/**/*'],
-            tasks: ['jshint', 'build']
+            tasks: ['browserify']
         },
         jshint: {
             all: ['src/*.js', 'src/renderers/*.js'],
