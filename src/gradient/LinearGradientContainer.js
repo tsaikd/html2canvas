@@ -1,9 +1,11 @@
 var GradientContainer = require('./GradientContainer');
 var Color = require('../color');
 
-function LinearGradientContainer(imageData) {
+function LinearGradientContainer(imageData, container) {
     GradientContainer.apply(this, arguments);
     this.type = this.TYPES.LINEAR;
+
+    var bounds = container.parseBounds();
 
     var hasDirection = imageData.args[0].match(this.stepRegExp) === null;
 
@@ -13,21 +15,21 @@ function LinearGradientContainer(imageData) {
             case "0deg":
             case "left":
                 this.x0 = 0;
-                this.x1 = 1;
+                this.x1 = bounds.width;
                 break;
             case "90deg":
             case "top":
                 this.y0 = 0;
-                this.y1 = 1;
+                this.y1 = bounds.height;
                 break;
             case "180deg":
             case "right":
-                this.x0 = 1;
+                this.x0 = bounds.width;
                 this.x1 = 0;
                 break;
             case "270deg":
             case "bottom":
-                this.y0 = 1;
+                this.y0 = bounds.height;
                 this.y1 = 0;
                 break;
             case "to":
@@ -40,7 +42,16 @@ function LinearGradientContainer(imageData) {
                 break;
             default:
                 if(position.indexOf('deg') != -1) {
+                    var hW = bounds.width / 2;
+                    var hH = bounds.height / 2;
+
                     var deg = parseFloat(position.substr(0, position.length - 3));
+
+                    // Unprefixed radial gradients use bearings instead of polar coords.
+                    if(imageData.prefix !== '-webkit-') {
+                      deg = 90 - deg;
+                    }
+
                     while(deg < 0) {
                       deg += 360;
                     }
@@ -51,17 +62,17 @@ function LinearGradientContainer(imageData) {
                     var slope = Math.tan(rad);
                     var pSlope = 1 / slope;
 
-                    var corner = [ deg >= 180 ? -0.5 : 0.5, deg < 80 && deg >= 270 ? 0.5 : 0.5 ];
+                    var corner = [ deg < 180 ? hW : -hW, deg < 90 || deg >= 270 ? hH : -hH ];
 
                     var c = corner[1] - pSlope * corner[0];
                     var endX = c / (slope - pSlope);
                     var endY = pSlope * endX + c;
 
-                    this.x0 = 0.5 - endX;
-                    this.y0 = 0.5 + endY;
+                    this.x0 = hW - endX;
+                    this.y0 = hH + endY;
 
-                    this.x1 = 0.5 + endX;
-                    this.y1 = 0.5 - endY;
+                    this.x1 = hW + endX;
+                    this.y1 = hH - endY;
                 }
                 break;
             }

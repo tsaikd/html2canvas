@@ -151,18 +151,17 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
     var gradient;
     if (gradientImage instanceof LinearGradientContainer) {
         gradient = this.ctx.createLinearGradient(
-            bounds.left + bounds.width * gradientImage.x0,
-            bounds.top + bounds.height * gradientImage.y0,
-            bounds.left + bounds.width * gradientImage.x1,
-            bounds.top + bounds.height * gradientImage.y1);
+            bounds.left + gradientImage.x0,
+            bounds.top + gradientImage.y0,
+            bounds.left + gradientImage.x1,
+            bounds.top + gradientImage.y1);
     } else if (gradientImage instanceof RadialGradientContainer) {
       gradient = this.ctx.createRadialGradient(
-          bounds.left + bounds.width * gradientImage.x0,
-          bounds.top + bounds.height * gradientImage.y0,
-          gradientImage.r0,
-          bounds.left + bounds.width * gradientImage.x1,
-          bounds.top + bounds.height * gradientImage.y1,
-          gradientImage.r1);
+          gradientImage.x0,
+          gradientImage.y0,
+          gradientImage.r,
+          gradientImage.x1,
+          gradientImage.y1, 0);
     }
 
     gradientImage.colorStops.forEach(function(colorStop) {

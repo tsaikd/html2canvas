@@ -17,24 +17,24 @@
 
     <script type="text/javascript" src="../dist/html2canvas.js"></script>
     <script type="text/javascript">
-        var req = new XMLHttpRequest();
+        window.onload = function () {
+          var req = new XMLHttpRequest();
 
-        req.onload = function() {
-          console.log("Hello");
-          var content = document.getElementById('content');
-          content.innerHTML = req.responseText;
+          req.onload = function() {
+            console.log("Hello");
+            var content = document.getElementById('content');
+            content.innerHTML = req.responseText;
 
-          setTimeout(function() {
-            html2canvas(document.body).then(function(canvas) {
-                content.innerHTML = '';
-                document.body.appendChild(canvas);
-                console.log("Hello #2");
+            html2canvas(content[0]).then(function(canvas) {
+              content.innerHTML = '';
+              document.body.appendChild(canvas);
+              console.log("Hello #2");
             });
-          }, 0);
-        };
+          };
 
-        req.open('get', 'htmlTest3.html', true);
-        req.send();
+          req.open('get', 'htmlTest4.html', true);
+          req.send();
+        };
     </script>
   </body>
 </html>

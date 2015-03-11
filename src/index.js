@@ -16,7 +16,7 @@ var html2canvasCloneIndex = 0;
 function html2canvas(nodeList, options) {
     var index = html2canvasCloneIndex++;
     options = options || {};
-    if (options.logging) {
+    if (!options.logging) {
         html2canvas.logging = true;
         html2canvas.start = Date.now();
     }
