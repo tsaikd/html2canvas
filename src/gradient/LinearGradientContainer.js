@@ -113,6 +113,6 @@ function LinearGradientContainer(imageData, container) {
 
 LinearGradientContainer.prototype = Object.create(GradientContainer.prototype);
 
-RadialGradientContainer.prototype.stepRegExp = /((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/;
+LinearGradientContainer.prototype.stepRegExp = /((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/;
 
 module.exports = LinearGradientContainer;
