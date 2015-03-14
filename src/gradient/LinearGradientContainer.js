@@ -6,8 +6,7 @@ function LinearGradientContainer(imageData, container) {
     this.type = this.TYPES.LINEAR;
 
     var bounds = container.parseBounds();
-
-    var hasDirection = imageData.args[0].match(this.stepRegExp) === null;
+    var hasDirection = imageData.args[0].indexOf(this.stepRegExp) === -1;
 
     if (hasDirection) {
         imageData.args[0].split(" ").reverse().forEach(function(position) {
@@ -114,6 +113,6 @@ function LinearGradientContainer(imageData, container) {
 
 LinearGradientContainer.prototype = Object.create(GradientContainer.prototype);
 
-LinearGradientContainer.prototype.stepRegExp = /((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/;
+RadialGradientContainer.prototype.stepRegExp = /((?:rgb|rgba)\(\d{1,3},\s\d{1,3},\s\d{1,3}(?:,\s[0-9\.]+)?\))\s*(\d{1,3})?(%|px)?/;
 
 module.exports = LinearGradientContainer;

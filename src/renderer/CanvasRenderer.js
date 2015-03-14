@@ -156,17 +156,42 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
             bounds.left + gradientImage.x1,
             bounds.top + gradientImage.y1);
     } else if (gradientImage instanceof RadialGradientContainer) {
+      if(typeof gradientImage.scaleX !== 'undefined' || typeof gradientImage.scaleY !== 'undefined') {
+        gradientImage.scaleX = gradientImage.scaleX || 1;
+        gradientImage.scaleY = gradientImage.scaleY || 1;
+
+        gradient = this.ctx.createRadialGradient(
+            (bounds.left + gradientImage.x0) / gradientImage.scaleX,
+            (bounds.top + gradientImage.y0) / gradientImage.scaleY,
+            gradientImage.r,
+            (bounds.left + gradientImage.x0) / gradientImage.scaleX,
+            (bounds.top + gradientImage.y0) / gradientImage.scaleY, 0);
+
+        gradientImage.colorStops.forEach(function(colorStop) {
+            gradient.addColorStop(colorStop.stop, colorStop.color.toString());
+        });
+
+        var currentTransform = this.ctx.currentTransform;
+        this.ctx.setTransform(gradientImage.scaleX, 0, 0, gradientImage.scaleY, 0, 0);
+        this.rectangle(bounds.left / gradientImage.scaleX, bounds.top / gradientImage.scaleY, bounds.width, bounds.height, gradient);
+
+        // reset the old transform
+        this.ctx.currentTransform = currentTransform;
+        return;
+      }
+
       gradient = this.ctx.createRadialGradient(
-          gradientImage.x0,
-          gradientImage.y0,
+          bounds.left + gradientImage.x0,
+          bounds.top + gradientImage.y0,
           gradientImage.r,
-          gradientImage.x1,
-          gradientImage.y1, 0);
+          bounds.left + gradientImage.x0,
+          bounds.top + gradientImage.y0, 0);
     }
 
     gradientImage.colorStops.forEach(function(colorStop) {
         gradient.addColorStop(colorStop.stop, colorStop.color.toString());
     });
+
     this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, gradient);
 };
 

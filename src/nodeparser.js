@@ -756,11 +756,11 @@ function getBorderRadiusData(container, borders) {
         }
 
         arr.forEach(function(val) {
-          if(val.indexOf('%') != -1) {
+          if(val.indexOf('%') !== -1) {
             var size;
 
             size = (arr.indexOf(val) === 0) ? bounds.height : bounds.width;
-            arr[arr.indexOf(val)] = (asFloat(val) * 0.01) * size - 1;
+            arr[arr.indexOf(val)] = (asFloat(val) / 100) * size;
           }
         });
 
