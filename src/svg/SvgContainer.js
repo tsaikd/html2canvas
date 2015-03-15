@@ -36,7 +36,7 @@ SVGContainer.prototype.createCanvas = function(resolve) {
         canvas
             .setWidth(options.width)
             .setHeight(options.height)
-            .add(fabric.util.groupSVGElements(objects, options))
+            .add(fabric.util.groupSVGElements(objects,options))
             .renderAll();
         resolve(canvas.lowerCanvasEl);
     };

@@ -30,16 +30,20 @@ function NodeParser(element, renderer, support, imageLoader, options) {
         var canvasBackground = new NodeContainer(parent.color('backgroundColor').isTransparent() ? element.ownerDocument.body : element.ownerDocument.documentElement, null);
         renderer.rectangle(0, 0, renderer.width, renderer.height, canvasBackground.color('backgroundColor'));
     }
+
     parent.visibile = parent.isElementVisible();
     this.createPseudoHideStyles(element.ownerDocument);
     this.disableAnimations(element.ownerDocument);
     this.nodes = flatten([parent].concat(this.getChildren(parent)).filter(function(container) {
         return container.visible = container.isElementVisible();
     }).map(this.getPseudoElements, this));
+
     this.fontMetrics = new FontMetrics();
     log("Fetched nodes, total:", this.nodes.length);
+
     log("Calculate overflow clips");
     this.calculateOverflowClips();
+
     log("Start fetching images");
     this.images = imageLoader.fetch(this.nodes.filter(isElement));
     this.ready = this.images.ready.then(bind(function() {
@@ -327,6 +331,17 @@ NodeParser.prototype.paintNode = function(container) {
 
 NodeParser.prototype.paintElement = function(container) {
     var bounds = container.parseBounds();
+
+    var shadows = container.parseBoxShadows();
+    if(shadows) {
+      shadows.forEach(function(shadow) {
+        // TODO: Support non-rectangular shapes.
+        this.renderer.setShadow(shadow.color, shadow.offsetX, shadow.offsetY, shadow.blur);
+        this.renderer.rectangle(bounds.left - shadow.spread, bounds.top - shadow.spread, bounds.width + (2 * shadow.spread), bounds.height + (2 * shadow.spread), shadow.color);
+        this.renderer.clearShadow();
+      }, this);
+    }
+
     this.renderer.clip(container.backgroundClip, function() {
         this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
     }, this);
@@ -759,7 +774,7 @@ function getBorderRadiusData(container, borders) {
           if(val.indexOf('%') !== -1) {
             var size;
 
-            size = (arr.indexOf(val) === 0) ? bounds.height : bounds.width;
+            size = (arr.indexOf(val) === 0) ? bounds.width : bounds.height;
             arr[arr.indexOf(val)] = (asFloat(val) / 100) * size;
           }
         });

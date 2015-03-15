@@ -41,27 +41,34 @@ function LinearGradientContainer(imageData, container) {
                 break;
             default:
                 if(position.indexOf('deg') != -1) {
-                    var hW = bounds.width / 2;
-                    var hH = bounds.height / 2;
-
                     var deg = parseFloat(position.substr(0, position.length - 3));
 
                     // Unprefixed radial gradients use bearings instead of polar coords.
-                    if(imageData.prefix !== '-webkit-') {
+                    if(imageData.prefix === '-webkit-') {
                       deg = 90 - deg;
                     }
 
+                    deg = deg % 360;
                     while(deg < 0) {
                       deg += 360;
                     }
-                    deg = deg % 360;
 
-                    var rad = (deg * (Math.PI / 180));
+                    var slope = Math.tan(90 - deg);
+                    var pSlope = -1 / slope;
 
-                    var slope = Math.tan(rad);
-                    var pSlope = 1 / slope;
+                    var hW = bounds.width / 2;
+                    var hH = bounds.height / 2;
 
-                    var corner = [ deg < 180 ? hW : -hW, deg < 90 || deg >= 270 ? hH : -hH ];
+                    var corner;
+                    if (deg < 90) {
+                      corner = [hW, hH];
+                    } else if (deg < 180) {
+                      corner = [hW, -hH];
+                    } else if (deg < 270) {
+                      corner = [-hW, -hH];
+                    } else {
+                      corner = [-hW, hH];
+                    }
 
                     var c = corner[1] - pSlope * corner[0];
                     var endX = c / (slope - pSlope);
@@ -78,7 +85,7 @@ function LinearGradientContainer(imageData, container) {
         }, this);
     } else {
         this.y0 = 0;
-        this.y1 = 1;
+        this.y1 = bounds.height;
     }
 
     this.colorStops = imageData.args.slice(hasDirection ? 1 : 0).map(function(colorStop) {

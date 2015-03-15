@@ -191,15 +191,45 @@ NodeContainer.prototype.parseBackgroundRepeat = function(index) {
     return this.cssList("backgroundRepeat", index)[0];
 };
 
-NodeContainer.prototype.TEXT_SHADOW_PROPERTY = /(?!\([0-9\s.]+),(?![0-9\s.,]+\))/g;
+NodeContainer.prototype.SHADOW_PROPERTY = /(?!\([0-9\s.]+),(?![0-9\s.,]+\))/g;
+
+NodeContainer.prototype.BOX_SHADOW_VALUES = /(inset)|(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
 NodeContainer.prototype.TEXT_SHADOW_VALUES = /(-?\d+px)|(#.+)|(rgb\(.+\))|(rgba\(.+\))/g;
+
+NodeContainer.prototype.parseBoxShadows = function() {
+    var boxShadow = this.css("boxShadow");
+    var results = [];
+
+    if (boxShadow && boxShadow !== 'none') {
+        var shadows = boxShadow.split(this.SHADOW_PROPERTY);
+        for (var i = 0; shadows && (i < shadows.length); i++) {
+            var s = shadows[i].match(this.BOX_SHADOW_VALUES);
+
+            var ci = s[0] === 'inset' ? 1 : 0;
+            var color = new Color(s[ci]);
+
+            // TODO: Support inset.
+            if(ci === 1 || s[s.length - 1] === 'inset')
+              return;
+
+            results.push({
+                color: color,
+                offsetX: s[ci + 1] ? parseFloat(s[ci + 1]) : 0,
+                offsetY: s[ci + 2] ? parseFloat(s[ci + 2]) : 0,
+                blur: s[ci + 3] ? parseFloat(s[ci + 3]) : 0,
+                spread: s[ci + 4] ? parseFloat(s[ci + 4]) : 0
+            });
+        }
+    }
+    return results;
+};
 
 NodeContainer.prototype.parseTextShadows = function() {
     var textShadow = this.css("textShadow");
     var results = [];
 
     if (textShadow && textShadow !== 'none') {
-        var shadows = textShadow.split(this.TEXT_SHADOW_PROPERTY);
+        var shadows = textShadow.split(this.SHADOW_PROPERTY);
         for (var i = 0; shadows && (i < shadows.length); i++) {
             var s = shadows[i].match(this.TEXT_SHADOW_VALUES);
 

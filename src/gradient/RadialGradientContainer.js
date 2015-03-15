@@ -27,12 +27,15 @@ function RadialGradientContainer(imageData, container) {
         var width = matches[0].indexOf("%") > -1 ? (parseFloat(matches[0]) / 100) * bounds.width : parseFloat(matches[0]);
         var height = matches[1].indexOf("%") > -1 ? (parseFloat(matches[1]) / 100) * bounds.height : parseFloat(matches[1]);
 
+        width = (bounds.width - container.borders.borders[1].width - container.borders.borders[3].width) * (width / bounds.width);
+        height = (bounds.height - container.borders.borders[0].width - container.borders.borders[2].width) * (height / bounds.height);
+        
         if(Math.min(width, height) === width) {
-          this.r = (bounds.width - container.borders.borders[1].width - container.borders.borders[3].width) * (width / bounds.width);
-          this.scaleY = bounds.height / bounds.width;
+          this.r = width;
+          this.scaleY = height / width;
         } else {
-          this.r = (bounds.height - container.borders.borders[0].width - container.borders.borders[2].width) * (height / bounds.height);
-          this.scaleX = bounds.width / bounds.height;
+          this.r = height;
+          this.scaleX = width / height;
         }
       } else {
         // must be a circle
