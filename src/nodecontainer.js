@@ -208,19 +208,22 @@ NodeContainer.prototype.parseBoxShadows = function() {
             var ci = s[0] === 'inset' ? 1 : 0;
             var color = new Color(s[ci]);
 
-            // TODO: Support inset.
-            if(ci === 1 || s[s.length - 1] === 'inset')
-              return;
-
-            results.push({
+            var result = {
                 color: color,
                 offsetX: s[ci + 1] ? parseFloat(s[ci + 1]) : 0,
                 offsetY: s[ci + 2] ? parseFloat(s[ci + 2]) : 0,
                 blur: s[ci + 3] ? parseFloat(s[ci + 3]) : 0,
                 spread: s[ci + 4] ? parseFloat(s[ci + 4]) : 0
-            });
+            };
+
+            if(ci === 1 || s[s.length - 1] === 'inset') {
+              result.inset = true;
+            }
+
+            results.push(result);
         }
     }
+
     return results;
 };
 

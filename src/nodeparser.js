@@ -333,11 +333,17 @@ NodeParser.prototype.paintElement = function(container) {
     var bounds = container.parseBounds();
 
     var shadows = container.parseBoxShadows();
-    if(shadows) {
+    if(shadows.length > 0) {
       shadows.forEach(function(shadow) {
-        // TODO: Support non-rectangular shapes.
+        if(shadow.inset)
+          return;
+
+        shadow.blur = shadow.blur * container.parseTransform().matrix[0];
+
         this.renderer.setShadow(shadow.color, shadow.offsetX, shadow.offsetY, shadow.blur);
-        this.renderer.rectangle(bounds.left - shadow.spread, bounds.top - shadow.spread, bounds.width + (2 * shadow.spread), bounds.height + (2 * shadow.spread), shadow.color);
+        shadow.color.a = 255;
+        this.renderer.setFillStyle(shadow.color);
+        this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
         this.renderer.clearShadow();
       }, this);
     }
@@ -377,6 +383,20 @@ NodeParser.prototype.paintElement = function(container) {
         case "TEXTAREA":
             this.paintFormValue(container);
             break;
+        }
+
+        if(shadows.length > 0) {
+          shadows.forEach(function(shadow) {
+            if(!shadow.inset)
+              return;
+
+            // shadow.blur = shadow.blur * container.parseTransform().matrix[0];
+
+            this.renderer.setShadow(shadow.color, shadow.offsetX, shadow.offsetY, shadow.blur);
+            this.renderer.ctx.strokeStyle = new Color('rgb(0,0,255)');
+            this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).stroke();
+            this.renderer.clearShadow();
+          }, this);
         }
     }, this);
 };

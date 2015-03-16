@@ -11,6 +11,7 @@ function Color(value) {
         this.rgba(value) ||
         this.hex6(value) ||
         this.hex3(value);
+    this.isColor = typeof result !== 'undefined';
 }
 
 Color.prototype.darken = function(amount) {
@@ -113,8 +114,6 @@ Color.prototype.namedColor = function(value) {
 
     return !!color;
 };
-
-Color.prototype.isColor = true;
 
 // JSON.stringify([].slice.call($$('.named-color-table tr'), 1).map(function(row) { return [row.childNodes[3].textContent, row.childNodes[5].textContent.trim().split(",").map(Number)] }).reduce(function(data, row) {data[row[0]] = row[1]; return data}, {}))
 var colors = {

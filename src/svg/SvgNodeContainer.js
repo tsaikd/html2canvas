@@ -1,6 +1,7 @@
 var SVGContainer = require('./SvgContainer');
 var Promise = require('../promise');
 var fabric = require('../../vendor/fabric').fabric;
+var DOMURL = window.URL || window.webkitURL || window;
 
 function SVGNodeContainer(node, _native) {
     this.src = node;
