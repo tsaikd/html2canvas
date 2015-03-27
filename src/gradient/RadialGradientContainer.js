@@ -29,7 +29,7 @@ function RadialGradientContainer(imageData, container) {
 
         width = (bounds.width - container.borders.borders[1].width - container.borders.borders[3].width) * (width / bounds.width);
         height = (bounds.height - container.borders.borders[0].width - container.borders.borders[2].width) * (height / bounds.height);
-        
+
         if(Math.min(width, height) === width) {
           this.r = width;
           this.scaleY = height / width;
@@ -52,26 +52,26 @@ function RadialGradientContainer(imageData, container) {
 
       direction.split(' ').reverse().forEach(function(position) {
         switch(position) {
-        case 'circle':
-          shape = 'circle';
-          extentKeyword = extentKeyword || 'farthest-corner';
-          break;
-        case 'ellipse':
-          shape = 'ellipse';
-          extentKeyword = extentKeyword || 'farthest-corner';
-          break;
-        case 'closest-side':
-          extentKeyword = 'closest-side';
-          break;
-        case 'closest-corner':
-          extentKeyword = 'closest-corner';
-          break;
-        case 'farthest-side':
-          extentKeyword = 'farthest-side';
-          break;
-        case 'farthest-corner':
-          extentKeyword = 'farthest-corner';
-          break;
+          case 'circle':
+            shape = 'circle';
+            extentKeyword = extentKeyword || 'farthest-corner';
+            break;
+          case 'ellipse':
+            shape = 'ellipse';
+            extentKeyword = extentKeyword || 'farthest-corner';
+            break;
+          case 'closest-side':
+            extentKeyword = 'closest-side';
+            break;
+          case 'closest-corner':
+            extentKeyword = 'closest-corner';
+            break;
+          case 'farthest-side':
+            extentKeyword = 'farthest-side';
+            break;
+          case 'farthest-corner':
+            extentKeyword = 'farthest-corner';
+            break;
         }
       });
     }

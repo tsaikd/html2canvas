@@ -1,24 +1,17 @@
 var SVGContainer = require('./SvgContainer');
 var Promise = require('../promise');
-var fabric = require('../../vendor/fabric').fabric;
-var DOMURL = window.URL || window.webkitURL || window;
+var SVGParser = require('./SVGParser.js');
 
 function SVGNodeContainer(node, _native) {
-    this.src = node;
-    this.image = null;
-    var self = this;
+  this.src = node;
+  this.image = document.createElement('canvas');
+  var self = this;
 
-    this.promise = _native ? new Promise(function(resolve, reject) {
-        self.image = new Image();
-        self.image.onload = resolve;
-        self.image.onerror = reject;
-        self.image.src = "data:image/svg+xml," + (new XMLSerializer()).serializeToString(node);
-        if (self.image.complete === true) {
-            resolve(self.image);
-        }
-    }) : new Promise(function(resolve) {
-        fabric.parseSVGDocument(node, self.createCanvas.call(self, resolve));
+  this.promise = new Promise(function(resolve, reject) {
+    SVGParser.parse(this.image, (new XMLSerializer()).serializeToString(node), {
+      renderCallback: resolve
     });
+  }.bind(this));
 }
 
 SVGNodeContainer.prototype = Object.create(SVGContainer.prototype);
