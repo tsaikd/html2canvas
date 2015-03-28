@@ -1,4 +1,4 @@
-var SVGContainer = require('./SvgContainer');
+var SVGContainer = require('./SVGContainer');
 var Promise = require('../promise');
 var SVGParser = require('./SVGParser.js');
 
