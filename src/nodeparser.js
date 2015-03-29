@@ -339,8 +339,6 @@ NodeParser.prototype.paintElement = function(container) {
       if(shadow.inset)
         return;
 
-      shadow.blur = shadow.blur * container.parseTransform().matrix[0];
-
       this.renderer.setShadow(shadow.color, shadow.offsetX, shadow.offsetY, shadow.blur);
       shadow.color.a = 255;
       this.renderer.setFillStyle(shadow.color);
@@ -351,6 +349,23 @@ NodeParser.prototype.paintElement = function(container) {
 
   this.renderer.clip(container.backgroundClip, function() {
     this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
+  }, this);
+
+  this.renderer.clip(container.backgroundClip, function() {
+    if(shadows.length > 0) {
+      shadows.forEach(function(shadow) {
+        if(!shadow.inset)
+          return;
+
+        this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, 0);
+
+	shadow.color.a = 255;
+        this.renderer.ctx.strokeStyle = shadow.color.toString();
+        this.renderer.ctx.lineWidth =  + shadow.spread;
+        this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).stroke();
+        this.renderer.clearShadow();
+      }, this);
+    }
   }, this);
 
   this.renderer.clip(container.clip, function() {
@@ -364,6 +379,7 @@ NodeParser.prototype.paintElement = function(container) {
         var imgContainer = this.images.get(container.node);
         if(imgContainer) {
           this.renderer.renderImage(container, bounds, container.borders, imgContainer);
+
         } else {
           log("Error loading <" + container.node.nodeName + ">", container.node);
         }
@@ -384,18 +400,6 @@ NodeParser.prototype.paintElement = function(container) {
       case "TEXTAREA":
         this.paintFormValue(container);
         break;
-    }
-
-    if(shadows.length > 0) {
-      shadows.forEach(function(shadow) {
-        if(!shadow.inset)
-          return;
-
-        this.renderer.setShadow(shadow.color, shadow.offsetX, shadow.offsetY);
-        this.renderer.ctx.strokeStyle = shadow.color.toString();
-        this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).stroke();
-        this.renderer.clearShadow();
-      }, this);
     }
   }, this);
 };

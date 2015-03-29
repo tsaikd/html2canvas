@@ -62,7 +62,7 @@ ImageLoader.prototype.hasImageBackground = function(imageData) {
 ImageLoader.prototype.loadImage = function(imageData, container) {
   if(imageData.method === "url") {
     var src = imageData.args[0];
-    if(this.isSVG(src) && !this.support.svg && !this.options.allowTaint) {
+    if(this.isSVG(src) && !this.options.allowTaint) {
       return new SVGContainer(src);
     } else if(src.match(/data:image\/.*;base64,/i)) {
       return new ImageContainer(src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, ''), false);
@@ -82,7 +82,7 @@ ImageLoader.prototype.loadImage = function(imageData, container) {
   } else if(imageData.method === "gradient") {
     return new WebkitGradientContainer(imageData);
   } else if(imageData.method === "svg") {
-    return new SVGNodeContainer(imageData.args[0], this.support.svg);
+    return new SVGNodeContainer(imageData.args[0]);
   } else if(imageData.method === "IFRAME") {
     return new FrameContainer(imageData.args[0], this.isSameOrigin(imageData.args[0].src), this.options);
   } else {

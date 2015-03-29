@@ -10,8 +10,8 @@ function Color(value) {
     this.rgb(value) ||
     this.rgba(value) ||
     this.hex6(value) ||
-    this.hex3(value);
-  this.isColor = typeof result !== 'undefined';
+    this.hex3(value) || null;
+  this.isColor = typeof result !== null;
 }
 
 Color.prototype.darken = function(amount) {

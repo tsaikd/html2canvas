@@ -28,7 +28,7 @@ module.exports.parse = function(target, s, opts) {
       svgTag.parentNode.removeChild(svgTag);
       var div = document.createElement('div');
       div.appendChild(svgTag);
-      canvg(c, div.innerHTML);
+      module.exports.parse(c, div.innerHTML);
     }
     return;
   }
@@ -94,6 +94,7 @@ var pseudoElementRegex = /(::[^\s\+>~\.\[:]+|:first-line|:first-letter|:before|:
 var pseudoClassWithBracketsRegex = /(:[\w-]+\([^\)]*\))/gi;
 var pseudoClassRegex = /(:[^\s\+>~\.\[:]+)/g;
 var elementRegex = /([^\s\+>~\.\[:]+)/g;
+
 function getSelectorSpecificity(selector) {
   var typeCount = [0, 0, 0];
   var findMatch = function(regex, type) {
@@ -273,9 +274,11 @@ function build(opts) {
     var newValue = this.value;
     if(opacityProp.value != null && opacityProp.value != '' && typeof(this.value) == 'string') { // can only add opacity to colors, not patterns
       var color = new Color(this.value);
+      if(color.a === null)
+      	color.a = opacityProp.numValue();
 
       if(color.isColor) {
-        newValue = 'rgba(' + color.r + ', ' + color.g + ', ' + color.b + ', ' + opacityProp.numValue() + ')';
+        newValue = color.toString();
       }
     }
     return new svg.Property(this.name, newValue);
@@ -1815,6 +1818,8 @@ function build(opts) {
       }
 
       if(this.attribute('gradientTransform').hasValue()) {
+      	var bb = this.gradientUnits == 'objectBoundingBox' ? element.getBoundingBox() : null;
+
         // render as transformed pattern on temporary canvas
         var rootView = svg.ViewPort.viewPorts[0];
 
@@ -1829,15 +1834,15 @@ function build(opts) {
         group.children = [rect];
 
         var tempSvg = new svg.Element.svg();
-        tempSvg.attributes['x'] = new svg.Property('x', 0);
-        tempSvg.attributes['y'] = new svg.Property('y', 0);
-        tempSvg.attributes['width'] = new svg.Property('width', rootView.width);
-        tempSvg.attributes['height'] = new svg.Property('height', rootView.height);
+        tempSvg.attributes['x'] = new svg.Property('x', bb.x());
+        tempSvg.attributes['y'] = new svg.Property('y', bb.y());
+        tempSvg.attributes['width'] = new svg.Property('width', bb.width());
+        tempSvg.attributes['height'] = new svg.Property('height', bb.height());
         tempSvg.children = [group];
 
         var c = document.createElement('canvas');
-        c.width = rootView.width;
-        c.height = rootView.height;
+        c.width = bb.width();
+        c.height = bb.height();
         var tempCtx = c.getContext('2d');
         tempCtx.fillStyle = g;
         tempSvg.render(tempCtx);
