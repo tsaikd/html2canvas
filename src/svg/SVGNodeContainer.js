@@ -8,7 +8,7 @@ function SVGNodeContainer(node, _native) {
   var self = this;
 
   this.promise = new Promise(function(resolve, reject) {
-    SVGParser.parse(this.image, (new XMLSerializer()).serializeToString(node), {
+    SVGParser.parse(this.image, node, {
       renderCallback: resolve
     });
   }.bind(this));

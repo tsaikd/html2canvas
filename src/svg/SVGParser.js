@@ -1,5 +1,6 @@
 var Color = require('../color');
 var log = require('../log');
+var XHR = require('../xhr');
 
 /*
  target: canvas element or the id of a canvas element
@@ -45,17 +46,12 @@ module.exports.parse = function(target, s, opts) {
   if(!(target.childNodes.length == 1 && target.childNodes[0].nodeName == 'OBJECT')) target.svg = svg;
 
   var ctx = target.getContext('2d');
-  if(typeof(s.documentElement) != 'undefined') {
+  if(typeof(s.nodeName) !== 'undefined') {
     // load from xml doc
     svg.loadXmlDoc(ctx, s);
-  }
-  else if(s.substr(0, 1) == '<') {
+  } else {
     // load from xml string
     svg.loadXml(ctx, s);
-  }
-  else {
-    // load from url
-    svg.load(ctx, s);
   }
 }
 
@@ -188,23 +184,6 @@ function build(opts) {
   // compress spaces
   svg.compressSpaces = function(s) {
     return s.replace(/[\s\r\t\n]+/gm, ' ');
-  }
-
-  // ajax
-  svg.ajax = function(url) {
-    var AJAX;
-    if(window.XMLHttpRequest) {
-      AJAX = new XMLHttpRequest();
-    }
-    else {
-      AJAX = new ActiveXObject('Microsoft.XMLHTTP');
-    }
-    if(AJAX) {
-      AJAX.open('GET', url, false);
-      AJAX.send(null);
-      return AJAX.responseText;
-    }
-    return null;
   }
 
   // parse xml
@@ -1689,6 +1668,14 @@ function build(opts) {
       }
       return markers;
     }
+
+    this.getBoundingBox = function() {
+      if(typeof(node.getBBox) !== 'undefined') {
+        var box = node.getBBox();
+        return new svg.BoundingBox(box.x, box.y, box.x + box.width, box.y + box.height);
+      }
+      return this.path();
+    };
   }
   svg.Element.path.prototype = new svg.Element.PathElementBase;
 
@@ -1812,10 +1799,17 @@ function build(opts) {
       }
 
       if(this.attribute('gradientTransform').hasValue()) {
-      	var bb = this.gradientUnits == 'objectBoundingBox' ? element.getBoundingBox() : null;
-
-        // render as transformed pattern on temporary canvas
-        var rootView = svg.ViewPort.viewPorts[0];
+        var rootView;
+        if(this.gradientUnits == 'objectBoundingBox') {
+          var bb = element.getBoundingBox();
+          rootView = {
+            width: bb.width(),
+            height: bb.height()
+          };
+        } else {
+          rootView = svg.ViewPort.Current();
+        }
+        console.log(rootView);
 
         var rect = new svg.Element.rect();
         rect.attributes['x'] = new svg.Property('x', -svg.MAX_VIRTUAL_PIXELS / 3.0);
@@ -1825,18 +1819,18 @@ function build(opts) {
 
         var group = new svg.Element.g();
         group.attributes['transform'] = new svg.Property('transform', this.attribute('gradientTransform').value);
-        group.children = [rect];
+        group.children = [ rect ];
 
         var tempSvg = new svg.Element.svg();
-        tempSvg.attributes['x'] = new svg.Property('x', bb.x());
-        tempSvg.attributes['y'] = new svg.Property('y', bb.y());
-        tempSvg.attributes['width'] = new svg.Property('width', bb.width());
-        tempSvg.attributes['height'] = new svg.Property('height', bb.height());
-        tempSvg.children = [group];
+        tempSvg.attributes['x'] = new svg.Property('x', 0);
+        tempSvg.attributes['y'] = new svg.Property('y', 0);
+        tempSvg.attributes['width'] = new svg.Property('width', rootView.width);
+        tempSvg.attributes['height'] = new svg.Property('height', rootView.height);
+        tempSvg.children = [ group ];
 
         var c = document.createElement('canvas');
-        c.width = bb.width();
-        c.height = bb.height();
+        c.width = rootView.width;
+        c.height = rootView.height;
         var tempCtx = c.getContext('2d');
         tempCtx.fillStyle = g;
         tempSvg.render(tempCtx);
@@ -2448,8 +2442,10 @@ function build(opts) {
       this.img.src = href;
     }
     else {
-      this.img = svg.ajax(href);
-      this.loaded = true;
+      XHR(href).then(function(text) {
+        this.img = text;
+        this.loaded = true;
+      }.bind(this));
     }
 
     this.renderChildren = function(ctx) {
@@ -2555,12 +2551,15 @@ function build(opts) {
                   var urlStart = srcs[s].indexOf('url');
                   var urlEnd = srcs[s].indexOf(')', urlStart);
                   var url = srcs[s].substr(urlStart + 5, urlEnd - urlStart - 6);
-                  var doc = svg.parseXml(svg.ajax(url));
-                  var fonts = doc.getElementsByTagName('font');
-                  for(var f = 0; f < fonts.length; f++) {
-                    var font = svg.CreateElement(fonts[f]);
-                    svg.Definitions[fontFamily] = font;
-                  }
+                  XHR(url).then(function(doc) {
+                    doc = svg.parseXml(doc);
+
+                    var fonts = doc.getElementsByTagName('font');
+                    for(var f = 0; f < fonts.length; f++) {
+                      var font = svg.CreateElement(fonts[f]);
+                      svg.Definitions[fontFamily] = font;
+                    }
+                  });
                 }
               }
             }
@@ -2908,11 +2907,6 @@ function build(opts) {
     return e;
   }
 
-  // load from url
-  svg.load = function(ctx, url) {
-    svg.loadXml(ctx, svg.ajax(url));
-  }
-
   // load from xml
   svg.loadXml = function(ctx, xml) {
     svg.loadXmlDoc(ctx, svg.parseXml(xml));
@@ -2945,7 +2939,7 @@ function build(opts) {
       };
     }
 
-    var e = svg.CreateElement(dom.documentElement);
+    var e = svg.CreateElement(dom);
     e.root = true;
     e.addStylesFromStyleDefinition();
 
