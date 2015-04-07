@@ -25,7 +25,9 @@
             var content = document.getElementById('content');
             content.innerHTML = req.responseText;
 
-            html2canvas(content[0]).then(function(canvas) {
+            html2canvas(content[0], {
+              height: 1300
+            }).then(function(canvas) {
               content.innerHTML = '';
               document.body.appendChild(canvas);
               console.log("Hello #2");

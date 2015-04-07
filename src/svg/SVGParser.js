@@ -1,4 +1,5 @@
-var Color = require('../color.js');
+var Color = require('../color');
+var log = require('../log');
 
 /*
  target: canvas element or the id of a canvas element
@@ -126,14 +127,7 @@ function build(opts) {
   svg.FRAMERATE = 30;
   svg.MAX_VIRTUAL_PIXELS = 30000;
 
-  svg.log = function(msg) {
-  };
-  if(svg.opts['log'] == true && typeof(console) != 'undefined') {
-    svg.log = function(msg) {
-      console.log(msg);
-    };
-  }
-  ;
+  svg.log = log;
 
   // globals
   svg.init = function(ctx) {
@@ -1860,6 +1854,7 @@ function build(opts) {
     this.base(node);
 
     this.getGradient = function(ctx, element) {
+      console.log(svg.ViewPort);
       var bb = this.gradientUnits == 'objectBoundingBox' ? element.getBoundingBox() : null;
 
       if(!this.attribute('x1').hasValue()
