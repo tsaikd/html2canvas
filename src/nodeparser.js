@@ -352,22 +352,22 @@ NodeParser.prototype.paintElement = function(container) {
     this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
   }, this);
 
-/*
-  this.renderer.clip(container.backgroundClip, function() {
-    if(shadows.length > 0) {
-      shadows.forEach(function(shadow) {
-        if(!shadow.inset)
-          return;
+  /*
+   this.renderer.clip(container.backgroundClip, function() {
+   if(shadows.length > 0) {
+   shadows.forEach(function(shadow) {
+   if(!shadow.inset)
+   return;
 
-        this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
-        shadow.color.a = 255;
+   this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+   shadow.color.a = 255;
 
-        this.renderer.setFillStyle(shadow.color);
-        this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
-        this.renderer.clearShadow();
-      }, this);
-    }
-  }, this);*/
+   this.renderer.setFillStyle(shadow.color);
+   this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
+   this.renderer.clearShadow();
+   }, this);
+   }
+   }, this);*/
 
   this.renderer.clip(container.clip, function() {
     this.renderer.renderBorders(container.borders.borders);

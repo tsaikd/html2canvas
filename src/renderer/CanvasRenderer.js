@@ -96,11 +96,11 @@ CanvasRenderer.prototype.insetShape = function(bounds, shape) {
   var hW = bounds.width / 2;
   var hH = bounds.height / 2;
 
-  this.ctx.moveTo(  1000,  1000 );
-  this.ctx.lineTo( -1000,  1000 );
-  this.ctx.lineTo( -1000, -1000 );
-  this.ctx.lineTo(  1000, -1000 );
-  this.ctx.lineTo(  1000,  1000 );
+  this.ctx.moveTo(1000, 1000);
+  this.ctx.lineTo(-1000, 1000);
+  this.ctx.lineTo(-1000, -1000);
+  this.ctx.lineTo(1000, -1000);
+  this.ctx.lineTo(1000, 1000);
 
   shape.forEach(function(point, index) {
     if(point[0] === "rect") {

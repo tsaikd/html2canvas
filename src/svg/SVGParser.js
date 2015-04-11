@@ -7,17 +7,17 @@ var BoundingBox = require('../BoundingBox');
  target: canvas element or the id of a canvas element
  s: svg string, url to svg file, or xml document
  opts: optional hash of options
-		 ignoreMouse: true => ignore mouse events
-		 ignoreAnimation: true => ignore animations
-		 ignoreDimensions: true => does not try to resize canvas
-		 ignoreClear: true => does not clear canvas
-		 offsetX: int => draws at a x offset
-		 offsetY: int => draws at a y offset
-		 scaleWidth: int => scales horizontally to width
-		 scaleHeight: int => scales vertically to height
-		 renderCallback: function => will call the function after the first render is completed
-		 forceRedraw: function => will call the function on every frame, if it returns true, will redraw
-*/
+ ignoreMouse: true => ignore mouse events
+ ignoreAnimation: true => ignore animations
+ ignoreDimensions: true => does not try to resize canvas
+ ignoreClear: true => does not clear canvas
+ offsetX: int => draws at a x offset
+ offsetY: int => draws at a y offset
+ scaleWidth: int => scales horizontally to width
+ scaleHeight: int => scales vertically to height
+ renderCallback: function => will call the function after the first render is completed
+ forceRedraw: function => will call the function on every frame, if it returns true, will redraw
+ */
 module.exports.parse = function(target, s, opts) {
   // no parameters
   if(target == null && s == null && opts == null) {
@@ -251,7 +251,7 @@ function build(opts) {
     if(opacityProp.value != null && opacityProp.value != '' && typeof(this.value) == 'string') { // can only add opacity to colors, not patterns
       var color = new Color(this.value);
       if(color.a === null)
-      	color.a = opacityProp.numValue();
+        color.a = opacityProp.numValue();
 
       if(color.isColor) {
         newValue = color.toString();
@@ -560,7 +560,7 @@ function build(opts) {
     this.addPoint(x2, y2);
   }
 
-  svg.CanvasBoundingBox = new svg.BoundingBox(0,0,0,0);
+  svg.CanvasBoundingBox = new svg.BoundingBox(0, 0, 0, 0);
 
   svg.CanvasBoundingBox.expand = function(bb) {
     if(this.freeze) {
@@ -1864,14 +1864,14 @@ function build(opts) {
 
         var group = new svg.Element.g();
         group.attributes['transform'] = new svg.Property('transform', this.attribute('gradientTransform').value);
-        group.children = [ rect ];
+        group.children = [rect];
 
         var tempSvg = new svg.Element.svg();
         tempSvg.attributes['x'] = new svg.Property('x', 0);
         tempSvg.attributes['y'] = new svg.Property('y', 0);
         tempSvg.attributes['width'] = new svg.Property('width', rootView.width);
         tempSvg.attributes['height'] = new svg.Property('height', rootView.height);
-        tempSvg.children = [ group ];
+        tempSvg.children = [group];
 
         var c = document.createElement('canvas');
         c.width = rootView.width;

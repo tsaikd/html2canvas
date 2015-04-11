@@ -1713,25 +1713,25 @@ module.exports = function(ownerDocument, containerDocument, width, height, optio
     var documentClone = container.contentWindow.document;
 
     /* Chrome doesn't detect relative background-images assigned in inline <style> sheets when fetched through getComputedStyle
-      if window url is about:blank, we can assign the url to current by writing onto the document
-    */
+     if window url is about:blank, we can assign the url to current by writing onto the document
+     */
     container.contentWindow.onload = container.onload = function() {
       var interval = setInterval(function() {
-      if (documentClone.body.childNodes.length > 0) {
-        initNode(documentClone.documentElement);
-        clearInterval(interval);
-        if (options.type === "view") {
+        if(documentClone.body.childNodes.length > 0) {
+          initNode(documentClone.documentElement);
+          clearInterval(interval);
+          if(options.type === "view") {
             container.contentWindow.scrollTo(x, y);
-                        if ((/(iPad|iPhone|iPod)/g).test(navigator.userAgent) && (container.contentWindow.scrollY !== y || container.contentWindow.scrollX !== x)) {
-                            documentClone.documentElement.style.top = (-y) + "px";
-                            documentClone.documentElement.style.left = (-x) + "px";
-                            documentClone.documentElement.style.position = 'absolute';
-                        }
-                    }
-                    resolve(container);
-                }
-            }, 50);
-        };
+            if((/(iPad|iPhone|iPod)/g).test(navigator.userAgent) && (container.contentWindow.scrollY !== y || container.contentWindow.scrollX !== x)) {
+              documentClone.documentElement.style.top = (-y) + "px";
+              documentClone.documentElement.style.left = (-x) + "px";
+              documentClone.documentElement.style.position = 'absolute';
+            }
+          }
+          resolve(container);
+        }
+      }, 50);
+    };
 
     documentClone.open();
     documentClone.write("<!DOCTYPE html><html></html>");
@@ -3110,16 +3110,16 @@ function selectionValue(node) {
 }
 
 function parseMatrix(match) {
-    if (match && match[1] === "matrix") {
-        return match[2].split(",").map(function(s) {
-            return parseFloat(s.trim());
-        });
-    } else if (match && match[1] === "matrix3d") {
-        var matrix3d = match[2].split(",").map(function(s) {
-          return parseFloat(s.trim());
-        });
-        return [matrix3d[0], matrix3d[1], matrix3d[4], matrix3d[5], matrix3d[12], matrix3d[13]];
-    }
+  if(match && match[1] === "matrix") {
+    return match[2].split(",").map(function(s) {
+      return parseFloat(s.trim());
+    });
+  } else if(match && match[1] === "matrix3d") {
+    var matrix3d = match[2].split(",").map(function(s) {
+      return parseFloat(s.trim());
+    });
+    return [matrix3d[0], matrix3d[1], matrix3d[4], matrix3d[5], matrix3d[12], matrix3d[13]];
+  }
 }
 
 function isPercentage(value) {
@@ -3491,22 +3491,22 @@ NodeParser.prototype.paintElement = function(container) {
     this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
   }, this);
 
-/*
-  this.renderer.clip(container.backgroundClip, function() {
-    if(shadows.length > 0) {
-      shadows.forEach(function(shadow) {
-        if(!shadow.inset)
-          return;
+  /*
+   this.renderer.clip(container.backgroundClip, function() {
+   if(shadows.length > 0) {
+   shadows.forEach(function(shadow) {
+   if(!shadow.inset)
+   return;
 
-        this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
-        shadow.color.a = 255;
+   this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+   shadow.color.a = 255;
 
-        this.renderer.setFillStyle(shadow.color);
-        this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
-        this.renderer.clearShadow();
-      }, this);
-    }
-  }, this);*/
+   this.renderer.setFillStyle(shadow.color);
+   this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
+   this.renderer.clearShadow();
+   }, this);
+   }
+   }, this);*/
 
   this.renderer.clip(container.clip, function() {
     this.renderer.renderBorders(container.borders.borders);
@@ -4339,11 +4339,11 @@ CanvasRenderer.prototype.insetShape = function(bounds, shape) {
   var hW = bounds.width / 2;
   var hH = bounds.height / 2;
 
-  this.ctx.moveTo(  1000,  1000 );
-  this.ctx.lineTo( -1000,  1000 );
-  this.ctx.lineTo( -1000, -1000 );
-  this.ctx.lineTo(  1000, -1000 );
-  this.ctx.lineTo(  1000,  1000 );
+  this.ctx.moveTo(1000, 1000);
+  this.ctx.lineTo(-1000, 1000);
+  this.ctx.lineTo(-1000, -1000);
+  this.ctx.lineTo(1000, -1000);
+  this.ctx.lineTo(1000, 1000);
 
   shape.forEach(function(point, index) {
     if(point[0] === "rect") {
@@ -4753,17 +4753,17 @@ var BoundingBox = require('../BoundingBox');
  target: canvas element or the id of a canvas element
  s: svg string, url to svg file, or xml document
  opts: optional hash of options
-		 ignoreMouse: true => ignore mouse events
-		 ignoreAnimation: true => ignore animations
-		 ignoreDimensions: true => does not try to resize canvas
-		 ignoreClear: true => does not clear canvas
-		 offsetX: int => draws at a x offset
-		 offsetY: int => draws at a y offset
-		 scaleWidth: int => scales horizontally to width
-		 scaleHeight: int => scales vertically to height
-		 renderCallback: function => will call the function after the first render is completed
-		 forceRedraw: function => will call the function on every frame, if it returns true, will redraw
-*/
+ ignoreMouse: true => ignore mouse events
+ ignoreAnimation: true => ignore animations
+ ignoreDimensions: true => does not try to resize canvas
+ ignoreClear: true => does not clear canvas
+ offsetX: int => draws at a x offset
+ offsetY: int => draws at a y offset
+ scaleWidth: int => scales horizontally to width
+ scaleHeight: int => scales vertically to height
+ renderCallback: function => will call the function after the first render is completed
+ forceRedraw: function => will call the function on every frame, if it returns true, will redraw
+ */
 module.exports.parse = function(target, s, opts) {
   // no parameters
   if(target == null && s == null && opts == null) {
@@ -4997,7 +4997,7 @@ function build(opts) {
     if(opacityProp.value != null && opacityProp.value != '' && typeof(this.value) == 'string') { // can only add opacity to colors, not patterns
       var color = new Color(this.value);
       if(color.a === null)
-      	color.a = opacityProp.numValue();
+        color.a = opacityProp.numValue();
 
       if(color.isColor) {
         newValue = color.toString();
@@ -5306,7 +5306,7 @@ function build(opts) {
     this.addPoint(x2, y2);
   }
 
-  svg.CanvasBoundingBox = new svg.BoundingBox(0,0,0,0);
+  svg.CanvasBoundingBox = new svg.BoundingBox(0, 0, 0, 0);
 
   svg.CanvasBoundingBox.expand = function(bb) {
     if(this.freeze) {
@@ -6610,14 +6610,14 @@ function build(opts) {
 
         var group = new svg.Element.g();
         group.attributes['transform'] = new svg.Property('transform', this.attribute('gradientTransform').value);
-        group.children = [ rect ];
+        group.children = [rect];
 
         var tempSvg = new svg.Element.svg();
         tempSvg.attributes['x'] = new svg.Property('x', 0);
         tempSvg.attributes['y'] = new svg.Property('y', 0);
         tempSvg.attributes['width'] = new svg.Property('width', rootView.width);
         tempSvg.attributes['height'] = new svg.Property('height', rootView.height);
-        tempSvg.children = [ group ];
+        tempSvg.children = [group];
 
         var c = document.createElement('canvas');
         c.width = rootView.width;
