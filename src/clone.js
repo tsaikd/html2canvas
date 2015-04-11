@@ -75,20 +75,25 @@ module.exports = function(ownerDocument, containerDocument, width, height, optio
     var documentClone = container.contentWindow.document;
 
     /* Chrome doesn't detect relative background-images assigned in inline <style> sheets when fetched through getComputedStyle
-     if window url is about:blank, we can assign the url to current by writing onto the document
-     */
+      if window url is about:blank, we can assign the url to current by writing onto the document
+    */
     container.contentWindow.onload = container.onload = function() {
       var interval = setInterval(function() {
-        if(documentClone.body.childNodes.length > 0) {
-          initNode(documentClone.documentElement);
-          clearInterval(interval);
-          if(options.type === "view") {
+      if (documentClone.body.childNodes.length > 0) {
+        initNode(documentClone.documentElement);
+        clearInterval(interval);
+        if (options.type === "view") {
             container.contentWindow.scrollTo(x, y);
-          }
-          resolve(container);
-        }
-      }, 50);
-    };
+                        if ((/(iPad|iPhone|iPod)/g).test(navigator.userAgent) && (container.contentWindow.scrollY !== y || container.contentWindow.scrollX !== x)) {
+                            documentClone.documentElement.style.top = (-y) + "px";
+                            documentClone.documentElement.style.left = (-x) + "px";
+                            documentClone.documentElement.style.position = 'absolute';
+                        }
+                    }
+                    resolve(container);
+                }
+            }, 50);
+        };
 
     documentClone.open();
     documentClone.write("<!DOCTYPE html><html></html>");

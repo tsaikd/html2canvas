@@ -301,6 +301,7 @@ NodeContainer.prototype.getValue = function() {
 };
 
 NodeContainer.prototype.MATRIX_PROPERTY = /(matrix)\((.+)\)/;
+NodeContainer.prototype.MATRIX_PROPERTY = /(matrix|matrix3d)\((.+)\)/;
 NodeContainer.prototype.CLIP = /^rect\((\d+)px,? (\d+)px,? (\d+)px,? (\d+)px\)$/;
 
 function selectionValue(node) {
@@ -309,11 +310,16 @@ function selectionValue(node) {
 }
 
 function parseMatrix(match) {
-  if(match && match[1] === "matrix") {
-    return match[2].split(",").map(function(s) {
-      return parseFloat(s.trim());
-    });
-  }
+    if (match && match[1] === "matrix") {
+        return match[2].split(",").map(function(s) {
+            return parseFloat(s.trim());
+        });
+    } else if (match && match[1] === "matrix3d") {
+        var matrix3d = match[2].split(",").map(function(s) {
+          return parseFloat(s.trim());
+        });
+        return [matrix3d[0], matrix3d[1], matrix3d[4], matrix3d[5], matrix3d[12], matrix3d[13]];
+    }
 }
 
 function isPercentage(value) {
