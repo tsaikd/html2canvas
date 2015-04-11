@@ -1,6 +1,7 @@
 var Color = require('../color');
 var log = require('../log');
 var XHR = require('../xhr');
+var BoundingBox = require('../BoundingBox');
 
 /*
  target: canvas element or the id of a canvas element
@@ -138,6 +139,7 @@ function build(opts) {
     svg.Animations = [];
     svg.Images = [];
     svg.ctx = ctx;
+
     svg.ViewPort = new (function() {
       this.viewPorts = [];
       this.Clear = function() {
@@ -165,6 +167,7 @@ function build(opts) {
         return Math.sqrt(Math.pow(this.width(), 2) + Math.pow(this.height(), 2)) / Math.sqrt(2);
       }
     });
+
   }
   svg.init();
 
@@ -465,23 +468,7 @@ function build(opts) {
 
   // bounding box
   svg.BoundingBox = function(x1, y1, x2, y2) { // pass in initial points if you want
-    this.x1 = Number.NaN;
-    this.y1 = Number.NaN;
-    this.x2 = Number.NaN;
-    this.y2 = Number.NaN;
-
-    this.x = function() {
-      return this.x1;
-    }
-    this.y = function() {
-      return this.y1;
-    }
-    this.width = function() {
-      return this.x2 - this.x1;
-    }
-    this.height = function() {
-      return this.y2 - this.y1;
-    }
+    BoundingBox.call(this, x1, y1, x2, y2);
 
     this.addPoint = function(x, y) {
       if(x != null) {
@@ -573,6 +560,61 @@ function build(opts) {
     this.addPoint(x2, y2);
   }
 
+  svg.CanvasBoundingBox = new svg.BoundingBox(0,0,0,0);
+
+  svg.CanvasBoundingBox.expand = function(bb) {
+    if(this.freeze) {
+      return false;
+    }
+
+    if(bb.x1 < -500)
+      throw new Error(bb);
+    var a = false;
+
+    if(bb.x1 < this.x1) {
+      this.x1 = bb.x1;
+      a = true;
+    }
+
+    if(bb.x2 > this.x2) {
+      this.x2 = bb.x2;
+      a = true;
+    }
+
+    if(bb.y1 < this.y1) {
+      this.y1 = bb.y1;
+      a = true;
+    }
+
+    if(bb.y2 > this.y2) {
+      this.y2 = bb.y2;
+      a = true;
+    }
+
+    if(typeof(this.overflow) === 'undefined') {
+      return false;
+    }
+
+    return a;
+  };
+
+  svg.CanvasBoundingBox.apply = function(ctx, bb) {
+    if(Math.floor(bb.width) !== Math.floor(this.width)) {
+      ctx.canvas.width = this.width;
+      ctx.canvas.style.width = ctx.canvas.width + 'px';
+    }
+
+    if(Math.floor(bb.height) !== Math.floor(this.height)) {
+      ctx.canvas.height = this.height;
+      ctx.canvas.style.height = ctx.canvas.height + 'px';
+    }
+
+    if(this.x1 !== 0 || this.y1 !== 0) {
+      ctx.translate(-this.x1, -this.y1);
+      ctx.translate(bb.x1, bb.y1);
+    }
+  };
+
   // transforms
   svg.Transform = function(v) {
     var that = this;
@@ -600,7 +642,8 @@ function build(opts) {
       this.cy = a[2] || 0;
       this.apply = function(ctx) {
         ctx.translate(this.cx, this.cy);
-        ctx.rotate(this.angle.toRadians());
+        var a = this.angle.toRadians();
+        ctx.transform(Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a), 0, 0);
         ctx.translate(-this.cx, -this.cy);
       }
       this.unapply = function(ctx) {
@@ -1036,8 +1079,26 @@ function build(opts) {
       return new svg.BoundingBox();
     }
 
+    this.baseSetContext = this.setContext;
+    this.setContext = function(ctx) {
+      var bb = this.getBoundingBox();
+      var bt = {
+        width: svg.CanvasBoundingBox.width,
+        height: svg.CanvasBoundingBox.height,
+        x1: svg.CanvasBoundingBox.x1,
+        y1: svg.CanvasBoundingBox.y1
+      };
+
+      if(svg.CanvasBoundingBox.expand(bb)) {
+        svg.CanvasBoundingBox.apply(ctx, bt);
+      }
+
+      this.baseSetContext(ctx);
+    };
+
     this.renderChildren = function(ctx) {
       this.path(ctx);
+
       svg.Mouse.checkPath(this, ctx);
       if(ctx.fillStyle != '') {
         if(this.style('fill-rule').valueOrDefault('inherit') != 'inherit') {
@@ -1069,6 +1130,10 @@ function build(opts) {
     }
 
     this.getBoundingBox = function() {
+      if(node != null && typeof(node.getBBox) !== 'undefined') {
+        var box = node.getBBox();
+        return new svg.BoundingBox(box.x, box.y, box.x + box.width, box.y + box.height);
+      }
       return this.path();
     }
 
@@ -1122,16 +1187,6 @@ function build(opts) {
           x = -this.attribute('refX').toPixels('x');
           y = -this.attribute('refY').toPixels('y');
         }
-
-        if(this.attribute('overflow').valueOrDefault('hidden') != 'visible') {
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(width, y);
-          ctx.lineTo(width, height);
-          ctx.lineTo(x, height);
-          ctx.closePath();
-          ctx.clip();
-        }
       }
       svg.ViewPort.SetCurrent(width, height);
 
@@ -1157,6 +1212,12 @@ function build(opts) {
         svg.ViewPort.RemoveCurrent();
         svg.ViewPort.SetCurrent(viewBox[2], viewBox[3]);
       }
+
+      if(this.styles.overflow && this.styles.overflow.value === 'visible') {
+        svg.CanvasBoundingBox.overflow = true;
+      }
+
+      svg.CanvasBoundingBox.expand(new svg.BoundingBox(0, 0, svg.ViewPort.width(), svg.ViewPort.height()));
     }
   }
   svg.Element.svg.prototype = new svg.Element.RenderedElementBase;
@@ -1668,14 +1729,6 @@ function build(opts) {
       }
       return markers;
     }
-
-    this.getBoundingBox = function() {
-      if(typeof(node.getBBox) !== 'undefined') {
-        var box = node.getBBox();
-        return new svg.BoundingBox(box.x, box.y, box.x + box.width, box.y + box.height);
-      }
-      return this.path();
-    };
   }
   svg.Element.path.prototype = new svg.Element.PathElementBase;
 
@@ -1708,7 +1761,9 @@ function build(opts) {
         for(var y = -1; y <= 1; y++) {
           cctx.save();
           cctx.translate(x * c.width, y * c.height);
+          svg.CanvasBoundingBox.freeze = true;
           tempSvg.render(cctx);
+          svg.CanvasBoundingBox.freeze = false;
           cctx.restore();
         }
       }
@@ -1799,17 +1854,7 @@ function build(opts) {
       }
 
       if(this.attribute('gradientTransform').hasValue()) {
-        var rootView;
-        if(this.gradientUnits == 'objectBoundingBox') {
-          var bb = element.getBoundingBox();
-          rootView = {
-            width: bb.width(),
-            height: bb.height()
-          };
-        } else {
-          rootView = svg.ViewPort.Current();
-        }
-        console.log(rootView);
+        var rootView = this.gradientUnits == 'objectBoundingBox' ? element.getBoundingBox() : svg.ViewPort.Current();
 
         var rect = new svg.Element.rect();
         rect.attributes['x'] = new svg.Property('x', -svg.MAX_VIRTUAL_PIXELS / 3.0);
@@ -1833,7 +1878,9 @@ function build(opts) {
         c.height = rootView.height;
         var tempCtx = c.getContext('2d');
         tempCtx.fillStyle = g;
+        svg.CanvasBoundingBox.freeze = true;
         tempSvg.render(tempCtx);
+        svg.CanvasBoundingBox.freeze = false;
         return tempCtx.createPattern(c, 'no-repeat');
       }
 
@@ -1848,7 +1895,6 @@ function build(opts) {
     this.base(node);
 
     this.getGradient = function(ctx, element) {
-      console.log(svg.ViewPort);
       var bb = this.gradientUnits == 'objectBoundingBox' ? element.getBoundingBox() : null;
 
       if(!this.attribute('x1').hasValue()
@@ -1862,16 +1908,16 @@ function build(opts) {
       }
 
       var x1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x() + bb.width() * this.attribute('x1').numValue()
+        ? bb.x + bb.width * this.attribute('x1').numValue()
         : this.attribute('x1').toPixels('x'));
       var y1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y() + bb.height() * this.attribute('y1').numValue()
+        ? bb.y + bb.height * this.attribute('y1').numValue()
         : this.attribute('y1').toPixels('y'));
       var x2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x() + bb.width() * this.attribute('x2').numValue()
+        ? bb.x + bb.width * this.attribute('x2').numValue()
         : this.attribute('x2').toPixels('x'));
       var y2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y() + bb.height() * this.attribute('y2').numValue()
+        ? bb.y + bb.height * this.attribute('y2').numValue()
         : this.attribute('y2').toPixels('y'));
 
       if(x1 == x2 && y1 == y2) return null;
@@ -1893,27 +1939,27 @@ function build(opts) {
       if(!this.attribute('r').hasValue()) this.attribute('r', true).value = '50%';
 
       var cx = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x() + bb.width() * this.attribute('cx').numValue()
+        ? bb.x + bb.width * this.attribute('cx').numValue()
         : this.attribute('cx').toPixels('x'));
       var cy = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y() + bb.height() * this.attribute('cy').numValue()
+        ? bb.y + bb.height * this.attribute('cy').numValue()
         : this.attribute('cy').toPixels('y'));
 
       var fx = cx;
       var fy = cy;
       if(this.attribute('fx').hasValue()) {
         fx = (this.gradientUnits == 'objectBoundingBox'
-          ? bb.x() + bb.width() * this.attribute('fx').numValue()
+          ? bb.x + bb.width * this.attribute('fx').numValue()
           : this.attribute('fx').toPixels('x'));
       }
       if(this.attribute('fy').hasValue()) {
         fy = (this.gradientUnits == 'objectBoundingBox'
-          ? bb.y() + bb.height() * this.attribute('fy').numValue()
+          ? bb.y + bb.height * this.attribute('fy').numValue()
           : this.attribute('fy').toPixels('y'));
       }
 
       var r = (this.gradientUnits == 'objectBoundingBox'
-        ? (bb.width() + bb.height()) / 2.0 * this.attribute('r').numValue()
+        ? (bb.width + bb.height) / 2.0 * this.attribute('r').numValue()
         : this.attribute('r').toPixels());
 
       return ctx.createRadialGradient(fx, fy, 0, cx, cy, r);
@@ -2637,8 +2683,8 @@ function build(opts) {
         }
         var x = Math.floor(bb.x1);
         var y = Math.floor(bb.y1);
-        var width = Math.floor(bb.width());
-        var height = Math.floor(bb.height());
+        var width = Math.floor(bb.width);
+        var height = Math.floor(bb.height);
       }
 
       // temporarily remove mask to avoid recursion
@@ -2649,13 +2695,17 @@ function build(opts) {
       cMask.width = x + width;
       cMask.height = y + height;
       var maskCtx = cMask.getContext('2d');
+      svg.CanvasBoundingBox.freeze = true;
       this.renderChildren(maskCtx);
+      svg.CanvasBoundingBox.freeze = false;
 
       var c = document.createElement('canvas');
       c.width = x + width;
       c.height = y + height;
       var tempCtx = c.getContext('2d');
+      svg.CanvasBoundingBox.freeze = true;
       element.render(tempCtx);
+      svg.CanvasBoundingBox.freeze = false;
       tempCtx.globalCompositeOperation = 'destination-in';
       tempCtx.fillStyle = maskCtx.createPattern(cMask, 'no-repeat');
       tempCtx.fillRect(0, 0, x + width, y + height);
@@ -2726,8 +2776,8 @@ function build(opts) {
       var bb = element.getBoundingBox();
       var x = Math.floor(bb.x1);
       var y = Math.floor(bb.y1);
-      var width = Math.floor(bb.width());
-      var height = Math.floor(bb.height());
+      var width = Math.floor(bb.width);
+      var height = Math.floor(bb.height);
 
       // temporarily remove filter to avoid recursion
       var filter = element.style('filter').value;
@@ -2915,30 +2965,6 @@ function build(opts) {
   svg.loadXmlDoc = function(ctx, dom) {
     svg.init(ctx);
 
-    var mapXY = function(p) {
-      var e = ctx.canvas;
-      while(e) {
-        p.x -= e.offsetLeft;
-        p.y -= e.offsetTop;
-        e = e.offsetParent;
-      }
-      if(window.scrollX) p.x += window.scrollX;
-      if(window.scrollY) p.y += window.scrollY;
-      return p;
-    }
-
-    // bind mouse
-    if(svg.opts['ignoreMouse'] != true) {
-      ctx.canvas.onclick = function(e) {
-        var p = mapXY(new svg.Point(e != null ? e.clientX : event.clientX, e != null ? e.clientY : event.clientY));
-        svg.Mouse.onclick(p.x, p.y);
-      };
-      ctx.canvas.onmousemove = function(e) {
-        var p = mapXY(new svg.Point(e != null ? e.clientX : event.clientX, e != null ? e.clientY : event.clientY));
-        svg.Mouse.onmousemove(p.x, p.y);
-      };
-    }
-
     var e = svg.CreateElement(dom);
     e.root = true;
     e.addStylesFromStyleDefinition();
@@ -3000,9 +3026,17 @@ function build(opts) {
         ctx.clearRect(0, 0, cWidth, cHeight);
       }
       e.render(ctx);
+
+      if(e.style('overflow') === 'visible') {
+
+      }
+
       if(isFirstRender) {
         isFirstRender = false;
-        if(typeof(svg.opts['renderCallback']) == 'function') svg.opts['renderCallback'](dom);
+        if(typeof(svg.opts['renderCallback']) == 'function') svg.opts['renderCallback']({
+          element: dom,
+          bounds: svg.CanvasBoundingBox
+        });
       }
     }
 

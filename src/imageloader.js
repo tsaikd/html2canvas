@@ -62,13 +62,14 @@ ImageLoader.prototype.hasImageBackground = function(imageData) {
 ImageLoader.prototype.loadImage = function(imageData, container) {
   if(imageData.method === "url") {
     var src = imageData.args[0];
+    console.log(src);
     if(this.isSVG(src) && !this.options.allowTaint) {
       return new SVGContainer(src);
     } else if(src.match(/data:image\/.*;base64,/i)) {
       return new ImageContainer(src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, ''), false);
     } else if(this.isSameOrigin(src) || this.options.allowTaint === true || this.isSVG(src)) {
       return new ImageContainer(src, false);
-    } else if(this.support.cors && !this.options.allowTaint && this.options.useCORS) {
+    } else if(this.support.cors && !this.options.allowTaint) {
       return new ImageContainer(src, true);
     } else if(this.options.proxy) {
       return new ProxyImageContainer(src, this.options.proxy);

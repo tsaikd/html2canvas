@@ -90,6 +90,30 @@ CanvasRenderer.prototype.shape = function(shape) {
   return this.ctx;
 };
 
+CanvasRenderer.prototype.insetShape = function(bounds, shape) {
+  this.ctx.beginPath();
+
+  var hW = bounds.width / 2;
+  var hH = bounds.height / 2;
+
+  this.ctx.moveTo(  1000,  1000 );
+  this.ctx.lineTo( -1000,  1000 );
+  this.ctx.lineTo( -1000, -1000 );
+  this.ctx.lineTo(  1000, -1000 );
+  this.ctx.lineTo(  1000,  1000 );
+
+  shape.forEach(function(point, index) {
+    if(point[0] === "rect") {
+      // this.ctx.rect.apply(this.ctx, point.slice(1));
+    } else {
+      this.ctx[(index === 0) ? "moveTo" : point[0] + "To"].apply(this.ctx, point.slice(1));
+    }
+  }, this);
+  this.ctx.closePath();
+  return this.ctx;
+};
+
+
 CanvasRenderer.prototype.font = function(color, style, variant, weight, size, family) {
   this.setFillStyle(color).font = [style, variant, weight, size, family].join(" ").split(",")[0];
 };
