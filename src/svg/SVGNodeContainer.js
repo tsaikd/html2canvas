@@ -9,12 +9,10 @@ function SVGNodeContainer(node) {
   var self = this;
 
   this.getBounds = function(bounds) {
-    bounds.left = bounds.left + this.bb.x1;
-    bounds.right = bounds.left + this.bb.width;
-    bounds.top = bounds.top + this.bb.y1;
-    bounds.bottom = bounds.top + this.bb.height;
-    bounds.width = this.bb.width;
-    bounds.height = this.bb.height;
+    bounds.x1 = bounds.x1 + this.bb.x1;
+    bounds.x2 = bounds.x1 + this.bb.width;
+    bounds.y1 = bounds.y1 + this.bb.y1;
+    bounds.y2 = bounds.y1 + this.bb.height;
 
     return bounds;
   };

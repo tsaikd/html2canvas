@@ -90,30 +90,6 @@ CanvasRenderer.prototype.shape = function(shape) {
   return this.ctx;
 };
 
-CanvasRenderer.prototype.insetShape = function(bounds, shape) {
-  this.ctx.beginPath();
-
-  var hW = bounds.width / 2;
-  var hH = bounds.height / 2;
-
-  this.ctx.moveTo(1000, 1000);
-  this.ctx.lineTo(-1000, 1000);
-  this.ctx.lineTo(-1000, -1000);
-  this.ctx.lineTo(1000, -1000);
-  this.ctx.lineTo(1000, 1000);
-
-  shape.forEach(function(point, index) {
-    if(point[0] === "rect") {
-      // this.ctx.rect.apply(this.ctx, point.slice(1));
-    } else {
-      this.ctx[(index === 0) ? "moveTo" : point[0] + "To"].apply(this.ctx, point.slice(1));
-    }
-  }, this);
-  this.ctx.closePath();
-  return this.ctx;
-};
-
-
 CanvasRenderer.prototype.font = function(color, style, variant, weight, size, family) {
   this.setFillStyle(color).font = [style, variant, weight, size, family].join(" ").split(",")[0];
 };
@@ -164,7 +140,7 @@ CanvasRenderer.prototype.backgroundRepeatShape = function(imageContainer, backgr
 };
 
 CanvasRenderer.prototype.renderBackgroundRepeat = function(imageContainer, backgroundPosition, size, bounds, borderLeft, borderTop) {
-  var offsetX = Math.round(bounds.left + backgroundPosition.left + borderLeft), offsetY = Math.round(bounds.top + backgroundPosition.top + borderTop);
+  var offsetX = Math.round(bounds.x + backgroundPosition.x + borderLeft), offsetY = Math.round(bounds.y + backgroundPosition.y + borderTop);
   this.setFillStyle(this.ctx.createPattern(this.resizeImage(imageContainer, size), "repeat"));
   this.ctx.translate(offsetX, offsetY);
   this.ctx.fill();
@@ -175,21 +151,21 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
   var gradient;
   if(gradientImage instanceof LinearGradientContainer) {
     gradient = this.ctx.createLinearGradient(
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0,
-      bounds.left + gradientImage.x1,
-      bounds.top + gradientImage.y1);
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0,
+      bounds.x + gradientImage.x1,
+      bounds.y + gradientImage.y1);
   } else if(gradientImage instanceof RadialGradientContainer) {
     if(typeof gradientImage.scaleX !== 'undefined' || typeof gradientImage.scaleY !== 'undefined') {
       gradientImage.scaleX = gradientImage.scaleX || 1;
       gradientImage.scaleY = gradientImage.scaleY || 1;
 
       gradient = this.ctx.createRadialGradient(
-        (bounds.left + gradientImage.x0) / gradientImage.scaleX,
-        (bounds.top + gradientImage.y0) / gradientImage.scaleY,
+        (bounds.x + gradientImage.x0) / gradientImage.scaleX,
+        (bounds.y + gradientImage.y0) / gradientImage.scaleY,
         gradientImage.r,
-        (bounds.left + gradientImage.x0) / gradientImage.scaleX,
-        (bounds.top + gradientImage.y0) / gradientImage.scaleY, 0);
+        (bounds.x + gradientImage.x0) / gradientImage.scaleX,
+        (bounds.y + gradientImage.y0) / gradientImage.scaleY, 0);
 
       gradientImage.colorStops.forEach(function(colorStop) {
         gradient.addColorStop(colorStop.stop, colorStop.color.toString());
@@ -197,7 +173,7 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
 
       var currentTransform = this.ctx.currentTransform;
       this.ctx.setTransform(gradientImage.scaleX, 0, 0, gradientImage.scaleY, 0, 0);
-      this.rectangle(bounds.left / gradientImage.scaleX, bounds.top / gradientImage.scaleY, bounds.width, bounds.height, gradient);
+      this.rectangle(bounds.x / gradientImage.scaleX, bounds.y / gradientImage.scaleY, bounds.width, bounds.height, gradient);
 
       // reset the old transform
       this.ctx.currentTransform = currentTransform;
@@ -205,18 +181,18 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
     }
 
     gradient = this.ctx.createRadialGradient(
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0,
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0,
       gradientImage.r,
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0, 0);
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0, 0);
   }
 
   gradientImage.colorStops.forEach(function(colorStop) {
     gradient.addColorStop(colorStop.stop, colorStop.color.toString());
   });
 
-  this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, gradient);
+  this.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, gradient);
 };
 
 CanvasRenderer.prototype.resizeImage = function(imageContainer, size) {

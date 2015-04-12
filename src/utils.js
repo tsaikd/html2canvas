@@ -1,3 +1,5 @@
+var BoundingBox = require('./BoundingBox');
+
 exports.smallImage = function smallImage() {
   return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 };
@@ -14,29 +16,21 @@ exports.getBounds = function(node) {
   if(node.getBoundingClientRect) {
     var clientRect = node.getBoundingClientRect();
     var width = node.offsetWidth == null ? clientRect.width : node.offsetWidth;
-    return {
-      top: clientRect.top,
-      bottom: clientRect.bottom || (clientRect.top + clientRect.height),
-      right: clientRect.left + width,
-      left: clientRect.left,
-      width: width,
-      height: node.offsetHeight == null ? clientRect.height : node.offsetHeight
-    };
+    return new BoundingBox(clientRect.left,
+                           clientRect.top,
+                           clientRect.left + width,
+                           clientRect.bottom || (clientRect.top + clientRect.height));
   }
-  return {};
+  return new BoundingBox();
 };
 
 exports.offsetBounds = function(node) {
-  var parent = node.offsetParent ? exports.offsetBounds(node.offsetParent) : {top: 0, left: 0};
+  var parent = node.offsetParent ? exports.offsetBounds(node.offsetParent) : {y: 0, x: 0};
 
-  return {
-    top: node.offsetTop + parent.top,
-    bottom: node.offsetTop + node.offsetHeight + parent.top,
-    right: node.offsetLeft + parent.left + node.offsetWidth,
-    left: node.offsetLeft + parent.left,
-    width: node.offsetWidth,
-    height: node.offsetHeight
-  };
+  return new BoundingBox(node.offsetLeft + parent.x,
+                         node.offsetTop + parent.y,
+                         node.offsetLeft + parent.x + node.offsetWidth,
+                         node.offsetTop + node.offsetHeight + parent.y);
 };
 
 exports.parseBackgrounds = function(backgroundImage) {

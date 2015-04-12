@@ -470,25 +470,6 @@ function build(opts) {
   svg.BoundingBox = function(x1, y1, x2, y2) { // pass in initial points if you want
     BoundingBox.call(this, x1, y1, x2, y2);
 
-    this.addPoint = function(x, y) {
-      if(x != null) {
-        if(isNaN(this.x1) || isNaN(this.x2)) {
-          this.x1 = x;
-          this.x2 = x;
-        }
-        if(x < this.x1) this.x1 = x;
-        if(x > this.x2) this.x2 = x;
-      }
-
-      if(y != null) {
-        if(isNaN(this.y1) || isNaN(this.y2)) {
-          this.y1 = y;
-          this.y2 = y;
-        }
-        if(y < this.y1) this.y1 = y;
-        if(y > this.y2) this.y2 = y;
-      }
-    }
     this.addX = function(x) {
       this.addPoint(x, null);
     }
@@ -555,10 +536,9 @@ function build(opts) {
     this.isPointInBox = function(x, y) {
       return (this.x1 <= x && x <= this.x2 && this.y1 <= y && y <= this.y2);
     }
-
-    this.addPoint(x1, y1);
-    this.addPoint(x2, y2);
   }
+
+  svg.BoundingBox.prototype = Object.create(BoundingBox.prototype);
 
   svg.CanvasBoundingBox = new svg.BoundingBox(0, 0, 0, 0);
 
@@ -640,6 +620,7 @@ function build(opts) {
       this.angle = new svg.Property('angle', a[0]);
       this.cx = a[1] || 0;
       this.cy = a[2] || 0;
+
       this.apply = function(ctx) {
         ctx.translate(this.cx, this.cy);
         var a = this.angle.toRadians();

@@ -81,10 +81,10 @@ NodeParser.prototype.calculateOverflowClips = function() {
       var cssClip = container.parseClip();
       if(cssClip && ["absolute", "fixed"].indexOf(container.css('position')) !== -1) {
         clip.push([["rect",
-          container.bounds.left + cssClip.left,
-          container.bounds.top + cssClip.top,
-          cssClip.right - cssClip.left,
-          cssClip.bottom - cssClip.top
+          container.bounds.x + cssClip.x,
+          container.bounds.y + cssClip.y,
+          cssClip.x2 - cssClip.x,
+          cssClip.y2 - cssClip.y
         ]]);
       }
       container.clip = hasParentClip(container) ? container.parent.clip.concat(clip) : clip;
@@ -342,8 +342,27 @@ NodeParser.prototype.paintElement = function(container) {
       this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
       shadow.color.a = 255;
 
-      this.renderer.setFillStyle(shadow.color);
-      this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
+      var newBounds = bounds.clone();
+
+      newBounds.inflate(shadow.spread);
+
+      if(container.css('boxSizing') === 'content-box') {
+        newBounds.x += container.borders.borders[3].width;
+        newBounds.y += container.borders.borders[0].width;
+        newBounds.x2 -= container.borders.borders[1].width;
+        newBounds.y2 -= 2 * container.borders.borders[2].width;
+      }
+
+      newBounds.x += shadow.offsetX;
+      newBounds.y += shadow.offsetY;
+      newBounds.x2 += shadow.offsetX;
+      newBounds.y2 += shadow.offsetY;
+
+      var radius = getBorderRadiusData(container, container.borders.borders, newBounds);
+      var borderPoints = calculateCurvePoints(newBounds, radius, container.borders.borders);
+
+      this.renderer.drawShape(this.parseBackgroundClip(container, borderPoints, container.borders.borders, radius, newBounds), shadow.color);
+
       this.renderer.clearShadow();
     }, this);
   }
@@ -352,22 +371,43 @@ NodeParser.prototype.paintElement = function(container) {
     this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
   }, this);
 
-  /*
-   this.renderer.clip(container.backgroundClip, function() {
-   if(shadows.length > 0) {
-   shadows.forEach(function(shadow) {
-   if(!shadow.inset)
-   return;
+  this.renderer.clip(container.backgroundClip, function() {
+    if(shadows.length > 0) {
+      shadows.forEach(function(shadow) {
+        if(!shadow.inset)
+          return;
 
-   this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
-   shadow.color.a = 255;
+        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.color.a = 255;
+        this.renderer.setFillStyle(shadow.color);
 
-   this.renderer.setFillStyle(shadow.color);
-   this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
-   this.renderer.clearShadow();
-   }, this);
-   }
-   }, this);*/
+        var newBounds = bounds.clone();
+
+        newBounds.inflate(-shadow.spread);
+
+        if(container.css('boxSizing') === 'content-box') {
+          newBounds.x += container.borders.borders[3].width;
+          newBounds.y += container.borders.borders[0].width;
+          newBounds.x2 -= container.borders.borders[1].width;
+          newBounds.y2 -= container.borders.borders[2].width;
+        }
+
+        newBounds.x += shadow.offsetX;
+        newBounds.y += shadow.offsetY;
+        newBounds.x2 += shadow.offsetX;
+        newBounds.y2 += shadow.offsetY;
+
+        var radius = getBorderRadiusData(container, container.borders.borders, newBounds);
+        var borderPoints = calculateCurvePoints(newBounds, radius, container.borders.borders);
+
+        this.renderer.shape(this.parseBackgroundClip(container, borderPoints, container.borders.borders, radius, newBounds));
+        this.renderer.ctx.rect(bounds.x - newBounds.width, newBounds.y - newBounds.height, newBounds.width * 3, newBounds.height * 3);
+        this.renderer.ctx.fill('evenodd');
+
+        this.renderer.clearShadow();
+      }, this);
+    }
+  }, this);
 
   this.renderer.clip(container.clip, function() {
     this.renderer.renderBorders(container.borders.borders);
@@ -426,7 +466,7 @@ NodeParser.prototype.paintCheckbox = function(container) {
   var b = container.parseBounds();
 
   var size = Math.min(b.width, b.height);
-  var bounds = {width: size - 1, height: size - 1, top: b.top, left: b.left};
+  var bounds = {width: size - 1, height: size - 1, top: b.y, left: b.x};
   var r = [3, 3];
   var radius = [r, r, r, r];
   var borders = [1, 1, 1, 1].map(function(w) {
@@ -436,11 +476,11 @@ NodeParser.prototype.paintCheckbox = function(container) {
   var borderPoints = calculateCurvePoints(bounds, radius, borders);
 
   this.renderer.clip(container.backgroundClip, function() {
-    this.renderer.rectangle(bounds.left + 1, bounds.top + 1, bounds.width - 2, bounds.height - 2, new Color("#DEDEDE"));
+    this.renderer.rectangle(bounds.x + 1, bounds.y + 1, bounds.width - 2, bounds.height - 2, new Color("#DEDEDE"));
     this.renderer.renderBorders(calculateBorders(borders, bounds, borderPoints, radius));
     if(container.node.checked) {
       this.renderer.font(new Color('#424242'), 'normal', 'normal', 'bold', (size - 3) + "px", 'arial');
-      this.renderer.text("\u2714", bounds.left + size / 6, bounds.top + size - 1);
+      this.renderer.text("\u2714", bounds.x + size / 6, bounds.y + size - 1);
     }
   }, this);
 };
@@ -451,9 +491,9 @@ NodeParser.prototype.paintRadio = function(container) {
   var size = Math.min(bounds.width, bounds.height) - 2;
 
   this.renderer.clip(container.backgroundClip, function() {
-    this.renderer.circleStroke(bounds.left + 1, bounds.top + 1, size, new Color('#DEDEDE'), 1, new Color('#A5A5A5'));
+    this.renderer.circleStroke(bounds.x + 1, bounds.y + 1, size, new Color('#DEDEDE'), 1, new Color('#A5A5A5'));
     if(container.node.checked) {
-      this.renderer.circle(Math.ceil(bounds.left + size / 4) + 1, Math.ceil(bounds.top + size / 4) + 1, Math.floor(size / 2), new Color('#424242'));
+      this.renderer.circle(Math.ceil(bounds.x + size / 4) + 1, Math.ceil(bounds.y + size / 4) + 1, Math.floor(size / 2), new Color('#424242'));
     }
   }, this);
 };
@@ -478,8 +518,8 @@ NodeParser.prototype.paintFormValue = function(container) {
     });
     var bounds = container.parseBounds();
     wrapper.style.position = "fixed";
-    wrapper.style.left = bounds.left + "px";
-    wrapper.style.top = bounds.top + "px";
+    wrapper.style.x = bounds.x + "px";
+    wrapper.style.y = bounds.y + "px";
     wrapper.textContent = value;
     document.body.appendChild(wrapper);
     this.paintText(new TextContainer(wrapper.firstChild, container));
@@ -522,14 +562,14 @@ NodeParser.prototype.renderTextDecoration = function(container, bounds, metrics)
     case "underline":
       // Draws a line at the baseline of the font
       // TODO As some browsers display the line as more than 1px if the font-size is big, need to take that into account both in position and size
-      this.renderer.rectangle(bounds.left, Math.round(bounds.top + metrics.baseline + metrics.lineWidth), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.round(bounds.y + metrics.baseline + metrics.lineWidth), bounds.width, 1, container.color("color"));
       break;
     case "overline":
-      this.renderer.rectangle(bounds.left, Math.round(bounds.top), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.round(bounds.y), bounds.width, 1, container.color("color"));
       break;
     case "line-through":
       // TODO try and find exact position for line-through
-      this.renderer.rectangle(bounds.left, Math.ceil(bounds.top + metrics.middle + metrics.lineWidth), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.ceil(bounds.y + metrics.middle + metrics.lineWidth), bounds.width, 1, container.color("color"));
       break;
   }
 };
@@ -570,8 +610,8 @@ NodeParser.prototype.parseBorders = function(container) {
 function calculateBorders(borders, nodeBounds, borderPoints, radius) {
   return borders.map(function(border, borderSide) {
     if(border.width > 0) {
-      var bx = nodeBounds.left;
-      var by = nodeBounds.top;
+      var bx = nodeBounds.x;
+      var by = nodeBounds.y;
       var bw = nodeBounds.width;
       var bh = nodeBounds.height - (borders[2].width);
 
@@ -589,7 +629,7 @@ function calculateBorders(borders, nodeBounds, borderPoints, radius) {
           break;
         case 1:
           // right border
-          bx = nodeBounds.left + nodeBounds.width - (borders[1].width);
+          bx = nodeBounds.x + nodeBounds.width - (borders[1].width);
           bw = borders[1].width;
 
           border.args = drawSide({
@@ -629,26 +669,27 @@ function calculateBorders(borders, nodeBounds, borderPoints, radius) {
   });
 }
 
+
 NodeParser.prototype.parseBackgroundClip = function(container, borderPoints, borders, radius, bounds) {
   var backgroundClip = container.css('backgroundClip'),
     borderArgs = [];
 
-  switch(backgroundClip) {
-    case "content-box":
-    case "padding-box":
-      parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.left + borders[3].width, bounds.top + borders[0].width);
-      parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.left + bounds.width - borders[1].width, bounds.top + borders[0].width);
-      parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.left + bounds.width - borders[1].width, bounds.top + bounds.height - borders[2].width);
-      parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.left + borders[3].width, bounds.top + bounds.height - borders[2].width);
-      break;
+    switch(backgroundClip) {
+      case "content-box":
+      case "padding-box":
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.x + borders[3].width, bounds.y + borders[0].width);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.x + bounds.width - borders[1].width, bounds.y + borders[0].width);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.x + bounds.width - borders[1].width, bounds.y + bounds.height - borders[2].width);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.x + borders[3].width, bounds.y + bounds.height - borders[2].width);
+        break;
 
-    default:
-      parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.left, bounds.top);
-      parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.left + bounds.width, bounds.top);
-      parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.left + bounds.width, bounds.top + bounds.height);
-      parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.left, bounds.top + bounds.height);
-      break;
-  }
+      default:
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.x, bounds.y);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.x + bounds.width, bounds.y);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.x + bounds.width, bounds.y + bounds.height);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.x, bounds.y + bounds.height);
+        break;
+    }
 
   return borderArgs;
 };
@@ -668,11 +709,10 @@ function getCurvePoints(x, y, r1, r2) {
 }
 
 function calculateCurvePoints(bounds, borderRadius, borders) {
-  var x = bounds.left,
-    y = bounds.top,
+  var x = bounds.x,
+    y = bounds.y,
     width = bounds.width,
     height = bounds.height,
-
     tlh = borderRadius[0][0],
     tlv = borderRadius[0][1],
     trh = borderRadius[1][0],
@@ -687,16 +727,16 @@ function calculateCurvePoints(bounds, borderRadius, borders) {
     bottomWidth = width - brh,
     leftHeight = height - blv;
 
-  return {
-    topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
-    topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
-    topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
-    topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
-    bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
-    bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
-    bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
-    bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
-  };
+    return {
+      topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
+      topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
+      topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
+      topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
+      bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
+      bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
+      bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
+      bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
+    };
 }
 
 function bezierCurve(start, startControl, endControl, end) {
@@ -802,8 +842,8 @@ function noLetterSpacing(container) {
   return (/^(normal|none|0px)$/.test(container.parent.css("letterSpacing")));
 }
 
-function getBorderRadiusData(container, borders) {
-  var bounds = container.parseBounds();
+function getBorderRadiusData(container, borders, bounds) {
+  bounds = bounds || container.parseBounds();
   return ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map(function(side) {
     var value = container.css('border' + side + 'Radius');
     var arr = value.split(" ");

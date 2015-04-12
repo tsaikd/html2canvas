@@ -1611,12 +1611,18 @@ function BoundingBox(x1, y1, x2, y2) {
   Object.defineProperty(this, 'x', {
     get: function() {
       return this.x1;
+    },
+    set: function(val) {
+      this.x1 = val;
     }
   });
 
   Object.defineProperty(this, 'y', {
     get: function() {
       return this.y1;
+    },
+    set: function(val) {
+      this.y1 = val;
     }
   });
 
@@ -1631,7 +1637,43 @@ function BoundingBox(x1, y1, x2, y2) {
       return this.y2 - this.y1;
     }
   });
+
+  this.addPoint(x1, y1);
+  this.addPoint(x2, y2);
 }
+
+BoundingBox.prototype.addPoint = function(x, y) {
+  if(x != null) {
+    if(isNaN(this.x1) || isNaN(this.x2)) {
+      this.x1 = x;
+      this.x2 = x;
+    }
+    if(x < this.x1) this.x1 = x;
+    if(x > this.x2) this.x2 = x;
+  }
+
+  if(y != null) {
+    if(isNaN(this.y1) || isNaN(this.y2)) {
+      this.y1 = y;
+      this.y2 = y;
+    }
+    if(y < this.y1) this.y1 = y;
+    if(y > this.y2) this.y2 = y;
+  }
+}
+
+BoundingBox.prototype.inflate = function(paddingX, paddingY) {
+  paddingY = paddingY || paddingX;
+
+  this.x1 -= paddingX;
+  this.y1 -= paddingY;
+  this.x2 += paddingX;
+  this.y2 += paddingY;
+}
+
+BoundingBox.prototype.clone = function() {
+  return new BoundingBox(this.x1, this.y1, this.x2, this.y2);
+};
 
 module.exports = BoundingBox;
 
@@ -2632,6 +2674,7 @@ var CanvasRenderer = require('./renderer/CanvasRenderer');
 var ImageLoader = require('./imageloader');
 var NodeParser = require('./nodeparser');
 var NodeContainer = require('./nodecontainer');
+var BoundingBox = require('./BoundingBox');
 var log = require('./log');
 var utils = require('./utils');
 var createWindowClone = require('./clone');
@@ -2716,25 +2759,21 @@ function renderWindow(node, container, options, windowWidth, windowHeight) {
     var canvas;
 
     if(options.type === "view") {
-      canvas = crop(renderer.canvas, {
-        width: renderer.canvas.width,
-        height: renderer.canvas.height,
-        top: 0,
-        left: 0,
-        x: 0,
-        y: 0
-      });
+      canvas = crop(renderer.canvas, new BoundingBox(
+        0,
+        0,
+        renderer.canvas.width,
+        renderer.canvas.height
+      ));
     } else if(node === clonedWindow.document.body || node === clonedWindow.document.documentElement || options.canvas != null) {
       canvas = renderer.canvas;
     } else {
-      canvas = crop(renderer.canvas, {
-        width: options.width != null ? options.width : bounds.width,
-        height: options.height != null ? options.height : bounds.height,
-        top: bounds.top,
-        left: bounds.left,
-        x: clonedWindow.pageXOffset,
-        y: clonedWindow.pageYOffset
-      });
+      canvas = crop(renderer.canvas, new BoundingBox(
+        bounds.x,
+        bounds.y,
+        options.width != null ? bounds.x + options.width : bounds.y + bounds.width,
+        options.width != null ? bounds.y + options.width : bounds.y + bounds.width
+      ));
     }
 
     cleanupContainer(container, options);
@@ -2751,13 +2790,13 @@ function cleanupContainer(container, options) {
 
 function crop(canvas, bounds) {
   var croppedCanvas = document.createElement("canvas");
-  var x1 = Math.min(canvas.width - 1, Math.max(0, bounds.left));
-  var x2 = Math.min(canvas.width, Math.max(1, bounds.left + bounds.width));
-  var y1 = Math.min(canvas.height - 1, Math.max(0, bounds.top));
-  var y2 = Math.min(canvas.height, Math.max(1, bounds.top + bounds.height));
+  var x1 = Math.min(canvas.width - 1, Math.max(0, bounds.x));
+  var x2 = Math.min(canvas.width, Math.max(1, bounds.x + bounds.width));
+  var y1 = Math.min(canvas.height - 1, Math.max(0, bounds.y));
+  var y2 = Math.min(canvas.height, Math.max(1, bounds.y + bounds.height));
   croppedCanvas.width = bounds.width;
   croppedCanvas.height = bounds.height;
-  log("Cropping canvas at:", "left:", bounds.left, "top:", bounds.top, "width:", (x2 - x1), "height:", (y2 - y1));
+  log("Cropping canvas at:", "left:", bounds.x, "top:", bounds.y, "width:", (x2 - x1), "height:", (y2 - y1));
   log("Resulting crop with width", bounds.width, "and height", bounds.height, " with x", x1, "and y", y1);
   croppedCanvas.getContext("2d").drawImage(canvas, x1, y1, x2 - x1, y2 - y1, bounds.x, bounds.y, x2 - x1, y2 - y1);
   return croppedCanvas;
@@ -2790,7 +2829,7 @@ module.exports = (typeof(document) === "undefined" || typeof(Object.create) !== 
   return Promise.reject("No canvas support");
 } : html2canvas;
 
-},{"./clone":6,"./imageloader":17,"./log":19,"./nodecontainer":20,"./nodeparser":21,"./promise":22,"./proxy":23,"./renderer/CanvasRenderer":26,"./support":29,"./utils":34}],19:[function(require,module,exports){
+},{"./BoundingBox":5,"./clone":6,"./imageloader":17,"./log":19,"./nodecontainer":20,"./nodeparser":21,"./promise":22,"./proxy":23,"./renderer/CanvasRenderer":26,"./support":29,"./utils":34}],19:[function(require,module,exports){
 module.exports = function() {
   if(window.html2canvas.logging && window.console && window.console.log) {
     Function.prototype.bind.call(window.console.log, (window.console)).apply(window.console, [(Date.now() - window.html2canvas.start) + "ms", "html2canvas:"].concat([].slice.call(arguments, 0)));
@@ -2799,6 +2838,7 @@ module.exports = function() {
 
 },{}],20:[function(require,module,exports){
 var Color = require('./color');
+var BoundingBox = require('./BoundingBox');
 var utils = require('./utils');
 var getBounds = utils.getBounds;
 var parseBackgrounds = utils.parseBackgrounds;
@@ -2907,12 +2947,12 @@ NodeContainer.prototype.fontWeight = function() {
 NodeContainer.prototype.parseClip = function() {
   var matches = this.css('clip').match(this.CLIP);
   if(matches) {
-    return {
-      top: parseInt(matches[1], 10),
-      right: parseInt(matches[2], 10),
-      bottom: parseInt(matches[3], 10),
-      left: parseInt(matches[4], 10)
-    };
+    return new BoundingBox(
+      parseInt(matches[4], 10),
+      parseInt(matches[1], 10),
+      parseInt(matches[2], 10),
+      parseInt(matches[3], 10)
+    );
   }
   return null;
 };
@@ -2986,7 +3026,7 @@ NodeContainer.prototype.parseBackgroundPosition = function(bounds, image, index,
     left = top / image.height * image.width;
   }
 
-  return {left: left, top: top};
+  return new BoundingBox(left, top);
 };
 
 NodeContainer.prototype.parseBackgroundRepeat = function(index) {
@@ -3056,9 +3096,10 @@ NodeContainer.prototype.parseTransform = function() {
   if(!this.transformData) {
     if(this.hasTransform()) {
       var offset = this.parseBounds();
+      console.log(offset);
       var origin = this.prefixedCss("transformOrigin").split(" ").map(removePx).map(asFloat);
-      origin[0] += offset.left;
-      origin[1] += offset.top;
+      origin[0] += offset.x;
+      origin[1] += offset.y;
       this.transformData = {
         origin: origin,
         matrix: this.parseTransformMatrix()
@@ -3136,7 +3177,7 @@ function asFloat(str) {
 
 module.exports = NodeContainer;
 
-},{"./color":7,"./utils":34}],21:[function(require,module,exports){
+},{"./BoundingBox":5,"./color":7,"./utils":34}],21:[function(require,module,exports){
 var log = require('./log');
 var punycode = require('punycode');
 var NodeContainer = require('./nodecontainer');
@@ -3220,10 +3261,10 @@ NodeParser.prototype.calculateOverflowClips = function() {
       var cssClip = container.parseClip();
       if(cssClip && ["absolute", "fixed"].indexOf(container.css('position')) !== -1) {
         clip.push([["rect",
-          container.bounds.left + cssClip.left,
-          container.bounds.top + cssClip.top,
-          cssClip.right - cssClip.left,
-          cssClip.bottom - cssClip.top
+          container.bounds.x + cssClip.x,
+          container.bounds.y + cssClip.y,
+          cssClip.x2 - cssClip.x,
+          cssClip.y2 - cssClip.y
         ]]);
       }
       container.clip = hasParentClip(container) ? container.parent.clip.concat(clip) : clip;
@@ -3481,8 +3522,27 @@ NodeParser.prototype.paintElement = function(container) {
       this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
       shadow.color.a = 255;
 
-      this.renderer.setFillStyle(shadow.color);
-      this.renderer.shape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
+      var newBounds = bounds.clone();
+
+      newBounds.inflate(shadow.spread);
+
+      if(container.css('boxSizing') === 'content-box') {
+        newBounds.x += container.borders.borders[3].width;
+        newBounds.y += container.borders.borders[0].width;
+        newBounds.x2 -= container.borders.borders[1].width;
+        newBounds.y2 -= 2 * container.borders.borders[2].width;
+      }
+
+      newBounds.x += shadow.offsetX;
+      newBounds.y += shadow.offsetY;
+      newBounds.x2 += shadow.offsetX;
+      newBounds.y2 += shadow.offsetY;
+
+      var radius = getBorderRadiusData(container, container.borders.borders, newBounds);
+      var borderPoints = calculateCurvePoints(newBounds, radius, container.borders.borders);
+
+      this.renderer.drawShape(this.parseBackgroundClip(container, borderPoints, container.borders.borders, radius, newBounds), shadow.color);
+
       this.renderer.clearShadow();
     }, this);
   }
@@ -3491,22 +3551,43 @@ NodeParser.prototype.paintElement = function(container) {
     this.renderer.renderBackground(container, bounds, container.borders.borders.map(getWidth));
   }, this);
 
-  /*
-   this.renderer.clip(container.backgroundClip, function() {
-   if(shadows.length > 0) {
-   shadows.forEach(function(shadow) {
-   if(!shadow.inset)
-   return;
+  this.renderer.clip(container.backgroundClip, function() {
+    if(shadows.length > 0) {
+      shadows.forEach(function(shadow) {
+        if(!shadow.inset)
+          return;
 
-   this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
-   shadow.color.a = 255;
+        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.color.a = 255;
+        this.renderer.setFillStyle(shadow.color);
 
-   this.renderer.setFillStyle(shadow.color);
-   this.renderer.insetShape(container.backgroundClip[container.backgroundClip.length - 1]).fill();
-   this.renderer.clearShadow();
-   }, this);
-   }
-   }, this);*/
+        var newBounds = bounds.clone();
+
+        newBounds.inflate(-shadow.spread);
+
+        if(container.css('boxSizing') === 'content-box') {
+          newBounds.x += container.borders.borders[3].width;
+          newBounds.y += container.borders.borders[0].width;
+          newBounds.x2 -= container.borders.borders[1].width;
+          newBounds.y2 -= container.borders.borders[2].width;
+        }
+
+        newBounds.x += shadow.offsetX;
+        newBounds.y += shadow.offsetY;
+        newBounds.x2 += shadow.offsetX;
+        newBounds.y2 += shadow.offsetY;
+
+        var radius = getBorderRadiusData(container, container.borders.borders, newBounds);
+        var borderPoints = calculateCurvePoints(newBounds, radius, container.borders.borders);
+
+        this.renderer.shape(this.parseBackgroundClip(container, borderPoints, container.borders.borders, radius, newBounds));
+        this.renderer.ctx.rect(bounds.x - newBounds.width, newBounds.y - newBounds.height, newBounds.width * 3, newBounds.height * 3);
+        this.renderer.ctx.fill('evenodd');
+
+        this.renderer.clearShadow();
+      }, this);
+    }
+  }, this);
 
   this.renderer.clip(container.clip, function() {
     this.renderer.renderBorders(container.borders.borders);
@@ -3565,7 +3646,7 @@ NodeParser.prototype.paintCheckbox = function(container) {
   var b = container.parseBounds();
 
   var size = Math.min(b.width, b.height);
-  var bounds = {width: size - 1, height: size - 1, top: b.top, left: b.left};
+  var bounds = {width: size - 1, height: size - 1, top: b.y, left: b.x};
   var r = [3, 3];
   var radius = [r, r, r, r];
   var borders = [1, 1, 1, 1].map(function(w) {
@@ -3575,11 +3656,11 @@ NodeParser.prototype.paintCheckbox = function(container) {
   var borderPoints = calculateCurvePoints(bounds, radius, borders);
 
   this.renderer.clip(container.backgroundClip, function() {
-    this.renderer.rectangle(bounds.left + 1, bounds.top + 1, bounds.width - 2, bounds.height - 2, new Color("#DEDEDE"));
+    this.renderer.rectangle(bounds.x + 1, bounds.y + 1, bounds.width - 2, bounds.height - 2, new Color("#DEDEDE"));
     this.renderer.renderBorders(calculateBorders(borders, bounds, borderPoints, radius));
     if(container.node.checked) {
       this.renderer.font(new Color('#424242'), 'normal', 'normal', 'bold', (size - 3) + "px", 'arial');
-      this.renderer.text("\u2714", bounds.left + size / 6, bounds.top + size - 1);
+      this.renderer.text("\u2714", bounds.x + size / 6, bounds.y + size - 1);
     }
   }, this);
 };
@@ -3590,9 +3671,9 @@ NodeParser.prototype.paintRadio = function(container) {
   var size = Math.min(bounds.width, bounds.height) - 2;
 
   this.renderer.clip(container.backgroundClip, function() {
-    this.renderer.circleStroke(bounds.left + 1, bounds.top + 1, size, new Color('#DEDEDE'), 1, new Color('#A5A5A5'));
+    this.renderer.circleStroke(bounds.x + 1, bounds.y + 1, size, new Color('#DEDEDE'), 1, new Color('#A5A5A5'));
     if(container.node.checked) {
-      this.renderer.circle(Math.ceil(bounds.left + size / 4) + 1, Math.ceil(bounds.top + size / 4) + 1, Math.floor(size / 2), new Color('#424242'));
+      this.renderer.circle(Math.ceil(bounds.x + size / 4) + 1, Math.ceil(bounds.y + size / 4) + 1, Math.floor(size / 2), new Color('#424242'));
     }
   }, this);
 };
@@ -3617,8 +3698,8 @@ NodeParser.prototype.paintFormValue = function(container) {
     });
     var bounds = container.parseBounds();
     wrapper.style.position = "fixed";
-    wrapper.style.left = bounds.left + "px";
-    wrapper.style.top = bounds.top + "px";
+    wrapper.style.x = bounds.x + "px";
+    wrapper.style.y = bounds.y + "px";
     wrapper.textContent = value;
     document.body.appendChild(wrapper);
     this.paintText(new TextContainer(wrapper.firstChild, container));
@@ -3661,14 +3742,14 @@ NodeParser.prototype.renderTextDecoration = function(container, bounds, metrics)
     case "underline":
       // Draws a line at the baseline of the font
       // TODO As some browsers display the line as more than 1px if the font-size is big, need to take that into account both in position and size
-      this.renderer.rectangle(bounds.left, Math.round(bounds.top + metrics.baseline + metrics.lineWidth), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.round(bounds.y + metrics.baseline + metrics.lineWidth), bounds.width, 1, container.color("color"));
       break;
     case "overline":
-      this.renderer.rectangle(bounds.left, Math.round(bounds.top), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.round(bounds.y), bounds.width, 1, container.color("color"));
       break;
     case "line-through":
       // TODO try and find exact position for line-through
-      this.renderer.rectangle(bounds.left, Math.ceil(bounds.top + metrics.middle + metrics.lineWidth), bounds.width, 1, container.color("color"));
+      this.renderer.rectangle(bounds.x, Math.ceil(bounds.y + metrics.middle + metrics.lineWidth), bounds.width, 1, container.color("color"));
       break;
   }
 };
@@ -3709,8 +3790,8 @@ NodeParser.prototype.parseBorders = function(container) {
 function calculateBorders(borders, nodeBounds, borderPoints, radius) {
   return borders.map(function(border, borderSide) {
     if(border.width > 0) {
-      var bx = nodeBounds.left;
-      var by = nodeBounds.top;
+      var bx = nodeBounds.x;
+      var by = nodeBounds.y;
       var bw = nodeBounds.width;
       var bh = nodeBounds.height - (borders[2].width);
 
@@ -3728,7 +3809,7 @@ function calculateBorders(borders, nodeBounds, borderPoints, radius) {
           break;
         case 1:
           // right border
-          bx = nodeBounds.left + nodeBounds.width - (borders[1].width);
+          bx = nodeBounds.x + nodeBounds.width - (borders[1].width);
           bw = borders[1].width;
 
           border.args = drawSide({
@@ -3768,26 +3849,27 @@ function calculateBorders(borders, nodeBounds, borderPoints, radius) {
   });
 }
 
+
 NodeParser.prototype.parseBackgroundClip = function(container, borderPoints, borders, radius, bounds) {
   var backgroundClip = container.css('backgroundClip'),
     borderArgs = [];
 
-  switch(backgroundClip) {
-    case "content-box":
-    case "padding-box":
-      parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.left + borders[3].width, bounds.top + borders[0].width);
-      parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.left + bounds.width - borders[1].width, bounds.top + borders[0].width);
-      parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.left + bounds.width - borders[1].width, bounds.top + bounds.height - borders[2].width);
-      parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.left + borders[3].width, bounds.top + bounds.height - borders[2].width);
-      break;
+    switch(backgroundClip) {
+      case "content-box":
+      case "padding-box":
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftInner, borderPoints.topRightInner, bounds.x + borders[3].width, bounds.y + borders[0].width);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightInner, borderPoints.bottomRightInner, bounds.x + bounds.width - borders[1].width, bounds.y + borders[0].width);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightInner, borderPoints.bottomLeftInner, bounds.x + bounds.width - borders[1].width, bounds.y + bounds.height - borders[2].width);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftInner, borderPoints.topLeftInner, bounds.x + borders[3].width, bounds.y + bounds.height - borders[2].width);
+        break;
 
-    default:
-      parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.left, bounds.top);
-      parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.left + bounds.width, bounds.top);
-      parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.left + bounds.width, bounds.top + bounds.height);
-      parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.left, bounds.top + bounds.height);
-      break;
-  }
+      default:
+        parseCorner(borderArgs, radius[0], radius[1], borderPoints.topLeftOuter, borderPoints.topRightOuter, bounds.x, bounds.y);
+        parseCorner(borderArgs, radius[1], radius[2], borderPoints.topRightOuter, borderPoints.bottomRightOuter, bounds.x + bounds.width, bounds.y);
+        parseCorner(borderArgs, radius[2], radius[3], borderPoints.bottomRightOuter, borderPoints.bottomLeftOuter, bounds.x + bounds.width, bounds.y + bounds.height);
+        parseCorner(borderArgs, radius[3], radius[0], borderPoints.bottomLeftOuter, borderPoints.topLeftOuter, bounds.x, bounds.y + bounds.height);
+        break;
+    }
 
   return borderArgs;
 };
@@ -3807,11 +3889,10 @@ function getCurvePoints(x, y, r1, r2) {
 }
 
 function calculateCurvePoints(bounds, borderRadius, borders) {
-  var x = bounds.left,
-    y = bounds.top,
+  var x = bounds.x,
+    y = bounds.y,
     width = bounds.width,
     height = bounds.height,
-
     tlh = borderRadius[0][0],
     tlv = borderRadius[0][1],
     trh = borderRadius[1][0],
@@ -3826,16 +3907,16 @@ function calculateCurvePoints(bounds, borderRadius, borders) {
     bottomWidth = width - brh,
     leftHeight = height - blv;
 
-  return {
-    topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
-    topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
-    topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
-    topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
-    bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
-    bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
-    bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
-    bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
-  };
+    return {
+      topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
+      topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
+      topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
+      topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
+      bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
+      bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
+      bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
+      bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
+    };
 }
 
 function bezierCurve(start, startControl, endControl, end) {
@@ -3941,8 +4022,8 @@ function noLetterSpacing(container) {
   return (/^(normal|none|0px)$/.test(container.parent.css("letterSpacing")));
 }
 
-function getBorderRadiusData(container, borders) {
-  var bounds = container.parseBounds();
+function getBorderRadiusData(container, borders, bounds) {
+  bounds = bounds || container.parseBounds();
   return ["TopLeft", "TopRight", "BottomRight", "BottomLeft"].map(function(side) {
     var value = container.css('border' + side + 'Radius');
     var arr = value.split(" ");
@@ -4333,30 +4414,6 @@ CanvasRenderer.prototype.shape = function(shape) {
   return this.ctx;
 };
 
-CanvasRenderer.prototype.insetShape = function(bounds, shape) {
-  this.ctx.beginPath();
-
-  var hW = bounds.width / 2;
-  var hH = bounds.height / 2;
-
-  this.ctx.moveTo(1000, 1000);
-  this.ctx.lineTo(-1000, 1000);
-  this.ctx.lineTo(-1000, -1000);
-  this.ctx.lineTo(1000, -1000);
-  this.ctx.lineTo(1000, 1000);
-
-  shape.forEach(function(point, index) {
-    if(point[0] === "rect") {
-      // this.ctx.rect.apply(this.ctx, point.slice(1));
-    } else {
-      this.ctx[(index === 0) ? "moveTo" : point[0] + "To"].apply(this.ctx, point.slice(1));
-    }
-  }, this);
-  this.ctx.closePath();
-  return this.ctx;
-};
-
-
 CanvasRenderer.prototype.font = function(color, style, variant, weight, size, family) {
   this.setFillStyle(color).font = [style, variant, weight, size, family].join(" ").split(",")[0];
 };
@@ -4407,7 +4464,7 @@ CanvasRenderer.prototype.backgroundRepeatShape = function(imageContainer, backgr
 };
 
 CanvasRenderer.prototype.renderBackgroundRepeat = function(imageContainer, backgroundPosition, size, bounds, borderLeft, borderTop) {
-  var offsetX = Math.round(bounds.left + backgroundPosition.left + borderLeft), offsetY = Math.round(bounds.top + backgroundPosition.top + borderTop);
+  var offsetX = Math.round(bounds.x + backgroundPosition.x + borderLeft), offsetY = Math.round(bounds.y + backgroundPosition.y + borderTop);
   this.setFillStyle(this.ctx.createPattern(this.resizeImage(imageContainer, size), "repeat"));
   this.ctx.translate(offsetX, offsetY);
   this.ctx.fill();
@@ -4418,21 +4475,21 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
   var gradient;
   if(gradientImage instanceof LinearGradientContainer) {
     gradient = this.ctx.createLinearGradient(
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0,
-      bounds.left + gradientImage.x1,
-      bounds.top + gradientImage.y1);
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0,
+      bounds.x + gradientImage.x1,
+      bounds.y + gradientImage.y1);
   } else if(gradientImage instanceof RadialGradientContainer) {
     if(typeof gradientImage.scaleX !== 'undefined' || typeof gradientImage.scaleY !== 'undefined') {
       gradientImage.scaleX = gradientImage.scaleX || 1;
       gradientImage.scaleY = gradientImage.scaleY || 1;
 
       gradient = this.ctx.createRadialGradient(
-        (bounds.left + gradientImage.x0) / gradientImage.scaleX,
-        (bounds.top + gradientImage.y0) / gradientImage.scaleY,
+        (bounds.x + gradientImage.x0) / gradientImage.scaleX,
+        (bounds.y + gradientImage.y0) / gradientImage.scaleY,
         gradientImage.r,
-        (bounds.left + gradientImage.x0) / gradientImage.scaleX,
-        (bounds.top + gradientImage.y0) / gradientImage.scaleY, 0);
+        (bounds.x + gradientImage.x0) / gradientImage.scaleX,
+        (bounds.y + gradientImage.y0) / gradientImage.scaleY, 0);
 
       gradientImage.colorStops.forEach(function(colorStop) {
         gradient.addColorStop(colorStop.stop, colorStop.color.toString());
@@ -4440,7 +4497,7 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
 
       var currentTransform = this.ctx.currentTransform;
       this.ctx.setTransform(gradientImage.scaleX, 0, 0, gradientImage.scaleY, 0, 0);
-      this.rectangle(bounds.left / gradientImage.scaleX, bounds.top / gradientImage.scaleY, bounds.width, bounds.height, gradient);
+      this.rectangle(bounds.x / gradientImage.scaleX, bounds.y / gradientImage.scaleY, bounds.width, bounds.height, gradient);
 
       // reset the old transform
       this.ctx.currentTransform = currentTransform;
@@ -4448,18 +4505,18 @@ CanvasRenderer.prototype.renderBackgroundGradient = function(gradientImage, boun
     }
 
     gradient = this.ctx.createRadialGradient(
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0,
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0,
       gradientImage.r,
-      bounds.left + gradientImage.x0,
-      bounds.top + gradientImage.y0, 0);
+      bounds.x + gradientImage.x0,
+      bounds.y + gradientImage.y0, 0);
   }
 
   gradientImage.colorStops.forEach(function(colorStop) {
     gradient.addColorStop(colorStop.stop, colorStop.color.toString());
   });
 
-  this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, gradient);
+  this.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, gradient);
 };
 
 CanvasRenderer.prototype.resizeImage = function(imageContainer, size) {
@@ -4508,8 +4565,8 @@ Renderer.prototype.renderImage = function(container, bounds, borderData, imageCo
     0,
     imageContainer.image.width || width,
     imageContainer.image.height || height,
-    bounds.left + paddingLeft + borders[3].width,
-    bounds.top + paddingTop + borders[0].width,
+    bounds.x + paddingLeft + borders[3].width,
+    bounds.y + paddingTop + borders[0].width,
     width,
     height
   );
@@ -4525,7 +4582,7 @@ Renderer.prototype.renderBackground = function(container, bounds, borderData) {
 Renderer.prototype.renderBackgroundColor = function(container, bounds) {
   var color = container.color("backgroundColor");
   if(!color.isTransparent()) {
-    this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, color);
+    this.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, color);
   }
 };
 
@@ -4576,19 +4633,19 @@ Renderer.prototype.renderBackgroundRepeating = function(container, bounds, image
   switch(repeat) {
     case "repeat-x":
     case "repeat no-repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + borderData[3], bounds.top + position.top + borderData[0], 99999, size.height, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + borderData[3], bounds.y + position.y + borderData[0], 99999, size.height, borderData);
       break;
     case "repeat-y":
     case "no-repeat repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + position.left + borderData[3], bounds.top + borderData[0], size.width, 99999, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + position.x + borderData[3], bounds.y + borderData[0], size.width, 99999, borderData);
       break;
     case "no-repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + position.left + borderData[3], bounds.top + position.top + borderData[0], size.width, size.height, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + position.x + borderData[3], bounds.y + position.y + borderData[0], size.width, size.height, borderData);
       break;
     default:
       this.renderBackgroundRepeat(imageContainer, position, size, {
-        top: bounds.top,
-        left: bounds.left
+        y: bounds.y,
+        x: bounds.x
       }, borderData[3], borderData[0]);
       break;
   }
@@ -4666,12 +4723,10 @@ function SVGContainer(src) {
   var self = this;
 
   this.getBounds = function(bounds) {
-    bounds.left = bounds.left + this.bb.x1;
-    bounds.right = bounds.left + this.bb.width;
-    bounds.top = bounds.top + this.bb.y1;
-    bounds.bottom = bounds.top + this.bb.height;
-    bounds.width = this.bb.width;
-    bounds.height = this.bb.height;
+    bounds.x1 = bounds.x1 + this.bb.x1;
+    bounds.x2 = bounds.x2 + this.bb.width;
+    bounds.y1 = bounds.y1 + this.bb.y1;
+    bounds.y2 = bounds.y2 + this.bb.height;
 
     return bounds;
   };
@@ -4719,12 +4774,10 @@ function SVGNodeContainer(node) {
   var self = this;
 
   this.getBounds = function(bounds) {
-    bounds.left = bounds.left + this.bb.x1;
-    bounds.right = bounds.left + this.bb.width;
-    bounds.top = bounds.top + this.bb.y1;
-    bounds.bottom = bounds.top + this.bb.height;
-    bounds.width = this.bb.width;
-    bounds.height = this.bb.height;
+    bounds.x1 = bounds.x1 + this.bb.x1;
+    bounds.x2 = bounds.x1 + this.bb.width;
+    bounds.y1 = bounds.y1 + this.bb.y1;
+    bounds.y2 = bounds.y1 + this.bb.height;
 
     return bounds;
   };
@@ -5216,25 +5269,6 @@ function build(opts) {
   svg.BoundingBox = function(x1, y1, x2, y2) { // pass in initial points if you want
     BoundingBox.call(this, x1, y1, x2, y2);
 
-    this.addPoint = function(x, y) {
-      if(x != null) {
-        if(isNaN(this.x1) || isNaN(this.x2)) {
-          this.x1 = x;
-          this.x2 = x;
-        }
-        if(x < this.x1) this.x1 = x;
-        if(x > this.x2) this.x2 = x;
-      }
-
-      if(y != null) {
-        if(isNaN(this.y1) || isNaN(this.y2)) {
-          this.y1 = y;
-          this.y2 = y;
-        }
-        if(y < this.y1) this.y1 = y;
-        if(y > this.y2) this.y2 = y;
-      }
-    }
     this.addX = function(x) {
       this.addPoint(x, null);
     }
@@ -5301,10 +5335,9 @@ function build(opts) {
     this.isPointInBox = function(x, y) {
       return (this.x1 <= x && x <= this.x2 && this.y1 <= y && y <= this.y2);
     }
-
-    this.addPoint(x1, y1);
-    this.addPoint(x2, y2);
   }
+
+  svg.BoundingBox.prototype = Object.create(BoundingBox.prototype);
 
   svg.CanvasBoundingBox = new svg.BoundingBox(0, 0, 0, 0);
 
@@ -5386,6 +5419,7 @@ function build(opts) {
       this.angle = new svg.Property('angle', a[0]);
       this.cx = a[1] || 0;
       this.cy = a[2] || 0;
+
       this.apply = function(ctx) {
         ctx.translate(this.cx, this.cy);
         var a = this.angle.toRadians();
@@ -7927,6 +7961,8 @@ function capitalize(m, p1, p2) {
 module.exports = TextContainer;
 
 },{"./nodecontainer":20}],34:[function(require,module,exports){
+var BoundingBox = require('./BoundingBox');
+
 exports.smallImage = function smallImage() {
   return "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 };
@@ -7943,29 +7979,21 @@ exports.getBounds = function(node) {
   if(node.getBoundingClientRect) {
     var clientRect = node.getBoundingClientRect();
     var width = node.offsetWidth == null ? clientRect.width : node.offsetWidth;
-    return {
-      top: clientRect.top,
-      bottom: clientRect.bottom || (clientRect.top + clientRect.height),
-      right: clientRect.left + width,
-      left: clientRect.left,
-      width: width,
-      height: node.offsetHeight == null ? clientRect.height : node.offsetHeight
-    };
+    return new BoundingBox(clientRect.left,
+                           clientRect.top,
+                           clientRect.left + width,
+                           clientRect.bottom || (clientRect.top + clientRect.height));
   }
-  return {};
+  return new BoundingBox();
 };
 
 exports.offsetBounds = function(node) {
-  var parent = node.offsetParent ? exports.offsetBounds(node.offsetParent) : {top: 0, left: 0};
+  var parent = node.offsetParent ? exports.offsetBounds(node.offsetParent) : {y: 0, x: 0};
 
-  return {
-    top: node.offsetTop + parent.top,
-    bottom: node.offsetTop + node.offsetHeight + parent.top,
-    right: node.offsetLeft + parent.left + node.offsetWidth,
-    left: node.offsetLeft + parent.left,
-    width: node.offsetWidth,
-    height: node.offsetHeight
-  };
+  return new BoundingBox(node.offsetLeft + parent.x,
+                         node.offsetTop + parent.y,
+                         node.offsetLeft + parent.x + node.offsetWidth,
+                         node.offsetTop + node.offsetHeight + parent.y);
 };
 
 exports.parseBackgrounds = function(backgroundImage) {
@@ -8064,7 +8092,7 @@ exports.parseBackgrounds = function(backgroundImage) {
   return results;
 };
 
-},{"base64-arraybuffer":1}],35:[function(require,module,exports){
+},{"./BoundingBox":5,"base64-arraybuffer":1}],35:[function(require,module,exports){
 var Promise = require('./promise');
 
 function XHR(url) {

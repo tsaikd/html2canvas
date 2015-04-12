@@ -4,6 +4,7 @@ var CanvasRenderer = require('./renderer/CanvasRenderer');
 var ImageLoader = require('./imageloader');
 var NodeParser = require('./nodeparser');
 var NodeContainer = require('./nodecontainer');
+var BoundingBox = require('./BoundingBox');
 var log = require('./log');
 var utils = require('./utils');
 var createWindowClone = require('./clone');
@@ -88,25 +89,21 @@ function renderWindow(node, container, options, windowWidth, windowHeight) {
     var canvas;
 
     if(options.type === "view") {
-      canvas = crop(renderer.canvas, {
-        width: renderer.canvas.width,
-        height: renderer.canvas.height,
-        top: 0,
-        left: 0,
-        x: 0,
-        y: 0
-      });
+      canvas = crop(renderer.canvas, new BoundingBox(
+        0,
+        0,
+        renderer.canvas.width,
+        renderer.canvas.height
+      ));
     } else if(node === clonedWindow.document.body || node === clonedWindow.document.documentElement || options.canvas != null) {
       canvas = renderer.canvas;
     } else {
-      canvas = crop(renderer.canvas, {
-        width: options.width != null ? options.width : bounds.width,
-        height: options.height != null ? options.height : bounds.height,
-        top: bounds.top,
-        left: bounds.left,
-        x: clonedWindow.pageXOffset,
-        y: clonedWindow.pageYOffset
-      });
+      canvas = crop(renderer.canvas, new BoundingBox(
+        bounds.x,
+        bounds.y,
+        options.width != null ? bounds.x + options.width : bounds.y + bounds.width,
+        options.width != null ? bounds.y + options.width : bounds.y + bounds.width
+      ));
     }
 
     cleanupContainer(container, options);
@@ -123,13 +120,13 @@ function cleanupContainer(container, options) {
 
 function crop(canvas, bounds) {
   var croppedCanvas = document.createElement("canvas");
-  var x1 = Math.min(canvas.width - 1, Math.max(0, bounds.left));
-  var x2 = Math.min(canvas.width, Math.max(1, bounds.left + bounds.width));
-  var y1 = Math.min(canvas.height - 1, Math.max(0, bounds.top));
-  var y2 = Math.min(canvas.height, Math.max(1, bounds.top + bounds.height));
+  var x1 = Math.min(canvas.width - 1, Math.max(0, bounds.x));
+  var x2 = Math.min(canvas.width, Math.max(1, bounds.x + bounds.width));
+  var y1 = Math.min(canvas.height - 1, Math.max(0, bounds.y));
+  var y2 = Math.min(canvas.height, Math.max(1, bounds.y + bounds.height));
   croppedCanvas.width = bounds.width;
   croppedCanvas.height = bounds.height;
-  log("Cropping canvas at:", "left:", bounds.left, "top:", bounds.top, "width:", (x2 - x1), "height:", (y2 - y1));
+  log("Cropping canvas at:", "left:", bounds.x, "top:", bounds.y, "width:", (x2 - x1), "height:", (y2 - y1));
   log("Resulting crop with width", bounds.width, "and height", bounds.height, " with x", x1, "and y", y1);
   croppedCanvas.getContext("2d").drawImage(canvas, x1, y1, x2 - x1, y2 - y1, bounds.x, bounds.y, x2 - x1, y2 - y1);
   return croppedCanvas;

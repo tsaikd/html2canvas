@@ -23,8 +23,8 @@ Renderer.prototype.renderImage = function(container, bounds, borderData, imageCo
     0,
     imageContainer.image.width || width,
     imageContainer.image.height || height,
-    bounds.left + paddingLeft + borders[3].width,
-    bounds.top + paddingTop + borders[0].width,
+    bounds.x + paddingLeft + borders[3].width,
+    bounds.y + paddingTop + borders[0].width,
     width,
     height
   );
@@ -40,7 +40,7 @@ Renderer.prototype.renderBackground = function(container, bounds, borderData) {
 Renderer.prototype.renderBackgroundColor = function(container, bounds) {
   var color = container.color("backgroundColor");
   if(!color.isTransparent()) {
-    this.rectangle(bounds.left, bounds.top, bounds.width, bounds.height, color);
+    this.rectangle(bounds.x, bounds.y, bounds.width, bounds.height, color);
   }
 };
 
@@ -91,19 +91,19 @@ Renderer.prototype.renderBackgroundRepeating = function(container, bounds, image
   switch(repeat) {
     case "repeat-x":
     case "repeat no-repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + borderData[3], bounds.top + position.top + borderData[0], 99999, size.height, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + borderData[3], bounds.y + position.y + borderData[0], 99999, size.height, borderData);
       break;
     case "repeat-y":
     case "no-repeat repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + position.left + borderData[3], bounds.top + borderData[0], size.width, 99999, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + position.x + borderData[3], bounds.y + borderData[0], size.width, 99999, borderData);
       break;
     case "no-repeat":
-      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.left + position.left + borderData[3], bounds.top + position.top + borderData[0], size.width, size.height, borderData);
+      this.backgroundRepeatShape(imageContainer, position, size, bounds, bounds.x + position.x + borderData[3], bounds.y + position.y + borderData[0], size.width, size.height, borderData);
       break;
     default:
       this.renderBackgroundRepeat(imageContainer, position, size, {
-        top: bounds.top,
-        left: bounds.left
+        y: bounds.y,
+        x: bounds.x
       }, borderData[3], borderData[0]);
       break;
   }

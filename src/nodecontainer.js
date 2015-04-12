@@ -1,4 +1,5 @@
 var Color = require('./color');
+var BoundingBox = require('./BoundingBox');
 var utils = require('./utils');
 var getBounds = utils.getBounds;
 var parseBackgrounds = utils.parseBackgrounds;
@@ -107,12 +108,12 @@ NodeContainer.prototype.fontWeight = function() {
 NodeContainer.prototype.parseClip = function() {
   var matches = this.css('clip').match(this.CLIP);
   if(matches) {
-    return {
-      top: parseInt(matches[1], 10),
-      right: parseInt(matches[2], 10),
-      bottom: parseInt(matches[3], 10),
-      left: parseInt(matches[4], 10)
-    };
+    return new BoundingBox(
+      parseInt(matches[4], 10),
+      parseInt(matches[1], 10),
+      parseInt(matches[2], 10),
+      parseInt(matches[3], 10)
+    );
   }
   return null;
 };
@@ -186,7 +187,7 @@ NodeContainer.prototype.parseBackgroundPosition = function(bounds, image, index,
     left = top / image.height * image.width;
   }
 
-  return {left: left, top: top};
+  return new BoundingBox(left, top);
 };
 
 NodeContainer.prototype.parseBackgroundRepeat = function(index) {
@@ -256,9 +257,10 @@ NodeContainer.prototype.parseTransform = function() {
   if(!this.transformData) {
     if(this.hasTransform()) {
       var offset = this.parseBounds();
+      console.log(offset);
       var origin = this.prefixedCss("transformOrigin").split(" ").map(removePx).map(asFloat);
-      origin[0] += offset.left;
-      origin[1] += offset.top;
+      origin[0] += offset.x;
+      origin[1] += offset.y;
       this.transformData = {
         origin: origin,
         matrix: this.parseTransformMatrix()
