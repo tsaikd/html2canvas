@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "base64-arraybuffer": ">= 0.1.0",
-    "es6-promise": "^2.0.1",
-    "polygon-offset": "0.0.5"
+    "es6-promise": "^2.0.1"
   },
   "repository": {
     "type": "git",

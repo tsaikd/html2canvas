@@ -3096,7 +3096,6 @@ NodeContainer.prototype.parseTransform = function() {
   if(!this.transformData) {
     if(this.hasTransform()) {
       var offset = this.parseBounds();
-      console.log(offset);
       var origin = this.prefixedCss("transformOrigin").split(" ").map(removePx).map(asFloat);
       origin[0] += offset.x;
       origin[1] += offset.y;
@@ -3180,6 +3179,7 @@ module.exports = NodeContainer;
 },{"./BoundingBox":5,"./color":7,"./utils":34}],21:[function(require,module,exports){
 var log = require('./log');
 var punycode = require('punycode');
+var BoundingBox = require('./BoundingBox');
 var NodeContainer = require('./nodecontainer');
 var TextContainer = require('./textcontainer');
 var PseudoElementContainer = require('./pseudoelementcontainer');
@@ -3422,7 +3422,7 @@ NodeParser.prototype.parseTextBounds = function(container) {
     } else if(!this.support.rangeBounds || container.parent.hasTransform()) {
       container.node = container.node.splitText(text.length);
     }
-    return {};
+    return new BoundingBox();
   };
 };
 
@@ -3442,7 +3442,8 @@ NodeParser.prototype.getRangeBounds = function(node, offset, length) {
   var range = this.range || (this.range = node.ownerDocument.createRange());
   range.setStart(node, offset);
   range.setEnd(node, offset + length);
-  return range.getBoundingClientRect();
+  var rect = range.getBoundingClientRect();
+  return new BoundingBox(rect.left, rect.top, rect.right, rect.bottom);
 };
 
 function ClearTransform() {
@@ -3472,7 +3473,7 @@ NodeParser.prototype.parse = function(stack) {
 NodeParser.prototype.paint = function(container) {
   try {
     if(container instanceof ClearTransform) {
-      this.renderer.ctx.restore();
+      this.renderer.restore();
     } else if(isTextNode(container)) {
       if(isPseudoElement(container.parent)) {
         container.parent.appendToDOM();
@@ -3495,7 +3496,7 @@ NodeParser.prototype.paint = function(container) {
 NodeParser.prototype.paintNode = function(container) {
   if(isStackingContext(container)) {
     this.renderer.setOpacity(container.opacity);
-    this.renderer.ctx.save();
+    this.renderer.save();
     if(container.hasTransform()) {
       this.renderer.setTransform(container.parseTransform());
     }
@@ -3519,8 +3520,12 @@ NodeParser.prototype.paintElement = function(container) {
       if(shadow.inset)
         return;
 
-      this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+      shadow.blur = shadow.blur * this.renderer.getTransform().matrix[0];
+
+      var alpha = shadow.color.a;
       shadow.color.a = 255;
+      this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+      shadow.color.a = alpha;
 
       var newBounds = bounds.clone();
 
@@ -3557,8 +3562,12 @@ NodeParser.prototype.paintElement = function(container) {
         if(!shadow.inset)
           return;
 
-        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.blur = shadow.blur * this.renderer.getTransform().matrix[0];
+
+        var alpha = shadow.color.a;
         shadow.color.a = 255;
+        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.color.a = alpha;
         this.renderer.setFillStyle(shadow.color);
 
         var newBounds = bounds.clone();
@@ -3730,7 +3739,7 @@ NodeParser.prototype.paintText = function(container) {
   this.renderer.clip(container.parent.clip, function() {
     textList.map(this.parseTextBounds(container), this).forEach(function(bounds, index) {
       if(bounds) {
-        this.renderer.text(textList[index], bounds.left, bounds.bottom);
+        this.renderer.text(textList[index], bounds.x, bounds.y2);
         this.renderTextDecoration(container.parent, bounds, this.fontMetrics.getMetrics(family, size));
       }
     }, this);
@@ -4032,10 +4041,9 @@ function getBorderRadiusData(container, borders, bounds) {
     }
 
     arr.forEach(function(val) {
-      if(val.indexOf('%') !== -1) {
-        var size;
+      var size = (arr.indexOf(val) === 0) ? bounds.width : bounds.height;
 
-        size = (arr.indexOf(val) === 0) ? bounds.width : bounds.height;
+      if(val.indexOf('%') !== -1) {
         arr[arr.indexOf(val)] = (asFloat(val) / 100) * size;
       }
     });
@@ -4156,7 +4164,7 @@ function hasUnicode(string) {
 
 module.exports = NodeParser;
 
-},{"./color":7,"./fontmetrics":10,"./log":19,"./nodecontainer":20,"./promise":22,"./pseudoelementcontainer":25,"./stackingcontext":28,"./textcontainer":33,"./utils":34,"punycode":4}],22:[function(require,module,exports){
+},{"./BoundingBox":5,"./color":7,"./fontmetrics":10,"./log":19,"./nodecontainer":20,"./promise":22,"./pseudoelementcontainer":25,"./stackingcontext":28,"./textcontainer":33,"./utils":34,"punycode":4}],22:[function(require,module,exports){
 module.exports = require('es6-promise').Promise;
 
 },{"es6-promise":2}],23:[function(require,module,exports){
@@ -4338,10 +4346,23 @@ function CanvasRenderer(width, height) {
   this.taintCtx = this.document.createElement("canvas").getContext("2d");
   this.ctx.textBaseline = "bottom";
   this.variables = {};
+  this.transforms = {};
+  this.stackDepth = 1;
   log("Initialized CanvasRenderer with size", width, "x", height);
 }
 
 CanvasRenderer.prototype = Object.create(Renderer.prototype);
+
+CanvasRenderer.prototype.save = function() {
+  this.ctx.save();
+  this.stackDepth++;
+};
+
+CanvasRenderer.prototype.restore = function() {
+  this.ctx.restore();
+  delete this.transforms[this.stackDepth.toString()];
+  this.stackDepth--;
+}
 
 CanvasRenderer.prototype.setFillStyle = function(fillStyle) {
   this.ctx.fillStyle = typeof(fillStyle) === "object" && !!fillStyle.isColor ? fillStyle.toString() : fillStyle;
@@ -4393,12 +4414,15 @@ CanvasRenderer.prototype.drawImage = function(imageContainer, sx, sy, sw, sh, dx
 };
 
 CanvasRenderer.prototype.clip = function(shapes, callback, context) {
-  this.ctx.save();
+  if(shapes.length === 0)
+    return;
+
+  this.save();
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);
   callback.call(context);
-  this.ctx.restore();
+  this.restore();
 };
 
 CanvasRenderer.prototype.shape = function(shape) {
@@ -4433,8 +4457,28 @@ CanvasRenderer.prototype.setOpacity = function(opacity) {
   this.ctx.globalAlpha = opacity;
 };
 
+CanvasRenderer.prototype.getTransform = function() {
+  var a = this.stackDepth;
+  while(--a > 0) {
+    if(typeof(this.transforms[a.toString()]) !== 'undefined') {
+      var transform = this.transforms[a.toString()];
+      if(typeof(transform.x1) !== 'undefined')
+        continue;
+      if(transform.matrix.join(',') === '1,0,0,1,0,0')
+        continue;
+      return transform;
+    }
+  }
+
+  return {
+    origin: [0, 0],
+    matrix: [1, 0, 0, 1, 0, 0]
+  };
+};
+
 CanvasRenderer.prototype.setTransform = function(transform) {
   this.ctx.translate(transform.origin[0], transform.origin[1]);
+  this.transforms[this.stackDepth.toString()] = transform;
   this.ctx.transform.apply(this.ctx, transform.matrix);
   this.ctx.translate(-transform.origin[0], -transform.origin[1]);
 };

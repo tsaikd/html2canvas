@@ -1,5 +1,6 @@
 var log = require('./log');
 var punycode = require('punycode');
+var BoundingBox = require('./BoundingBox');
 var NodeContainer = require('./nodecontainer');
 var TextContainer = require('./textcontainer');
 var PseudoElementContainer = require('./pseudoelementcontainer');
@@ -242,7 +243,7 @@ NodeParser.prototype.parseTextBounds = function(container) {
     } else if(!this.support.rangeBounds || container.parent.hasTransform()) {
       container.node = container.node.splitText(text.length);
     }
-    return {};
+    return new BoundingBox();
   };
 };
 
@@ -262,7 +263,8 @@ NodeParser.prototype.getRangeBounds = function(node, offset, length) {
   var range = this.range || (this.range = node.ownerDocument.createRange());
   range.setStart(node, offset);
   range.setEnd(node, offset + length);
-  return range.getBoundingClientRect();
+  var rect = range.getBoundingClientRect();
+  return new BoundingBox(rect.left, rect.top, rect.right, rect.bottom);
 };
 
 function ClearTransform() {
@@ -292,7 +294,7 @@ NodeParser.prototype.parse = function(stack) {
 NodeParser.prototype.paint = function(container) {
   try {
     if(container instanceof ClearTransform) {
-      this.renderer.ctx.restore();
+      this.renderer.restore();
     } else if(isTextNode(container)) {
       if(isPseudoElement(container.parent)) {
         container.parent.appendToDOM();
@@ -315,7 +317,7 @@ NodeParser.prototype.paint = function(container) {
 NodeParser.prototype.paintNode = function(container) {
   if(isStackingContext(container)) {
     this.renderer.setOpacity(container.opacity);
-    this.renderer.ctx.save();
+    this.renderer.save();
     if(container.hasTransform()) {
       this.renderer.setTransform(container.parseTransform());
     }
@@ -339,8 +341,12 @@ NodeParser.prototype.paintElement = function(container) {
       if(shadow.inset)
         return;
 
-      this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+      shadow.blur = shadow.blur * this.renderer.getTransform().matrix[0];
+
+      var alpha = shadow.color.a;
       shadow.color.a = 255;
+      this.renderer.setShadow(shadow.color.toString(), shadow.offsetX, shadow.offsetY, shadow.blur);
+      shadow.color.a = alpha;
 
       var newBounds = bounds.clone();
 
@@ -377,8 +383,12 @@ NodeParser.prototype.paintElement = function(container) {
         if(!shadow.inset)
           return;
 
-        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.blur = shadow.blur * this.renderer.getTransform().matrix[0];
+
+        var alpha = shadow.color.a;
         shadow.color.a = 255;
+        this.renderer.setShadow(shadow.color.toString(), 0, 0, shadow.blur);
+        shadow.color.a = alpha;
         this.renderer.setFillStyle(shadow.color);
 
         var newBounds = bounds.clone();
@@ -550,7 +560,7 @@ NodeParser.prototype.paintText = function(container) {
   this.renderer.clip(container.parent.clip, function() {
     textList.map(this.parseTextBounds(container), this).forEach(function(bounds, index) {
       if(bounds) {
-        this.renderer.text(textList[index], bounds.left, bounds.bottom);
+        this.renderer.text(textList[index], bounds.x, bounds.y2);
         this.renderTextDecoration(container.parent, bounds, this.fontMetrics.getMetrics(family, size));
       }
     }, this);
@@ -852,10 +862,9 @@ function getBorderRadiusData(container, borders, bounds) {
     }
 
     arr.forEach(function(val) {
-      if(val.indexOf('%') !== -1) {
-        var size;
+      var size = (arr.indexOf(val) === 0) ? bounds.width : bounds.height;
 
-        size = (arr.indexOf(val) === 0) ? bounds.width : bounds.height;
+      if(val.indexOf('%') !== -1) {
         arr[arr.indexOf(val)] = (asFloat(val) / 100) * size;
       }
     });

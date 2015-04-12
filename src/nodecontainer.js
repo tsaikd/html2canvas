@@ -257,7 +257,6 @@ NodeContainer.prototype.parseTransform = function() {
   if(!this.transformData) {
     if(this.hasTransform()) {
       var offset = this.parseBounds();
-      console.log(offset);
       var origin = this.prefixedCss("transformOrigin").split(" ").map(removePx).map(asFloat);
       origin[0] += offset.x;
       origin[1] += offset.y;

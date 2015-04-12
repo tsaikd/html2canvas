@@ -14,10 +14,23 @@ function CanvasRenderer(width, height) {
   this.taintCtx = this.document.createElement("canvas").getContext("2d");
   this.ctx.textBaseline = "bottom";
   this.variables = {};
+  this.transforms = {};
+  this.stackDepth = 1;
   log("Initialized CanvasRenderer with size", width, "x", height);
 }
 
 CanvasRenderer.prototype = Object.create(Renderer.prototype);
+
+CanvasRenderer.prototype.save = function() {
+  this.ctx.save();
+  this.stackDepth++;
+};
+
+CanvasRenderer.prototype.restore = function() {
+  this.ctx.restore();
+  delete this.transforms[this.stackDepth.toString()];
+  this.stackDepth--;
+}
 
 CanvasRenderer.prototype.setFillStyle = function(fillStyle) {
   this.ctx.fillStyle = typeof(fillStyle) === "object" && !!fillStyle.isColor ? fillStyle.toString() : fillStyle;
@@ -69,12 +82,15 @@ CanvasRenderer.prototype.drawImage = function(imageContainer, sx, sy, sw, sh, dx
 };
 
 CanvasRenderer.prototype.clip = function(shapes, callback, context) {
-  this.ctx.save();
+  if(shapes.length === 0)
+    return;
+
+  this.save();
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);
   callback.call(context);
-  this.ctx.restore();
+  this.restore();
 };
 
 CanvasRenderer.prototype.shape = function(shape) {
@@ -109,8 +125,28 @@ CanvasRenderer.prototype.setOpacity = function(opacity) {
   this.ctx.globalAlpha = opacity;
 };
 
+CanvasRenderer.prototype.getTransform = function() {
+  var a = this.stackDepth;
+  while(--a > 0) {
+    if(typeof(this.transforms[a.toString()]) !== 'undefined') {
+      var transform = this.transforms[a.toString()];
+      if(typeof(transform.x1) !== 'undefined')
+        continue;
+      if(transform.matrix.join(',') === '1,0,0,1,0,0')
+        continue;
+      return transform;
+    }
+  }
+
+  return {
+    origin: [0, 0],
+    matrix: [1, 0, 0, 1, 0, 0]
+  };
+};
+
 CanvasRenderer.prototype.setTransform = function(transform) {
   this.ctx.translate(transform.origin[0], transform.origin[1]);
+  this.transforms[this.stackDepth.toString()] = transform;
   this.ctx.transform.apply(this.ctx, transform.matrix);
   this.ctx.translate(-transform.origin[0], -transform.origin[1]);
 };
