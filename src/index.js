@@ -42,9 +42,29 @@ function html2canvas(nodeList, options) {
   }
 
   var node = ((nodeList === undefined) ? [document.documentElement] : ((nodeList.length) ? nodeList : [nodeList]))[0];
+
+  function getHeight() {
+    var children = Array.prototype.slice.call(node.ownerDocument.body.childNodes).map(function(child) {
+      return [child.innerHeight, child.scrollHeight];
+    }).reduce(function(arr, child) {
+      if(child[0])
+        arr.push(child[0]);
+
+      if(child[1])
+        arr.push(child[1]);
+
+      return arr;
+    }, []);
+
+    return Math.max.apply(this, [
+      node.scrollHeight,
+      node.ownerDocument.defaultView.innerHeight
+    ].concat(children));
+  }
+
   node.setAttribute(html2canvasNodeAttribute + index, index);
   var width = options.width != null ? options.width : node.ownerDocument.defaultView.innerWidth;
-  var height = options.height != null ? options.height : node.ownerDocument.defaultView.innerHeight;
+  var height = options.height != null ? options.height : getHeight();
   return renderDocument(node.ownerDocument, options, width, height, index).then(function(canvas) {
     if(typeof(options.onrendered) === "function") {
       log("options.onrendered is deprecated, html2canvas returns a Promise containing the canvas");
@@ -70,6 +90,7 @@ function renderDocument(document, options, windowWidth, windowHeight, html2canva
     var node = clonedWindow.document.querySelector(selector);
     var oncloneHandler = (typeof(options.onclone) === "function") ? Promise.resolve(options.onclone(clonedWindow.document)) : Promise.resolve(true);
     return oncloneHandler.then(function() {
+      options.document = document;
       return renderWindow(node, container, options, windowWidth, windowHeight);
     });
   });
@@ -82,7 +103,7 @@ function renderWindow(node, container, options, windowWidth, windowHeight) {
   var bounds = getBounds(node);
   var width = options.type === "view" ? windowWidth : documentWidth(clonedWindow.document);
   var height = options.type === "view" ? windowHeight : documentHeight(clonedWindow.document);
-  var renderer = new options.renderer(width, height, imageLoader, options, document);
+  var renderer = new options.renderer(width, height, imageLoader, options, options.document || document);
   var parser = new NodeParser(node, renderer, support, imageLoader, options);
   return parser.ready.then(function() {
     log("Finished rendering");

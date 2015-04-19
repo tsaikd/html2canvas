@@ -9,6 +9,11 @@
       body {
         margin: 0;
         padding: 0;
+        height: 100%;
+      }
+
+      iframe {
+        border: 0;
       }
     </style>
   </head>
@@ -18,24 +23,24 @@
     <script type="text/javascript" src="../dist/html2canvas.js"></script>
     <script type="text/javascript">
         window.onload = function () {
-          var req = new XMLHttpRequest();
+          var frame = document.createElement("iframe");
+          frame.src = 'htmlTest4.html';
+          frame.width = '100%';
+          frame.height = '100%';
+          document.body.appendChild(frame);
 
-          req.onload = function() {
+          frame.onload = function() {
             console.log("Hello");
-            var content = document.getElementById('content');
-            content.innerHTML = req.responseText;
+            var framedoc = frame.contentDocument || frame.contentWindow.document;
 
-            html2canvas(content[0], {
-              height: 1300
+            html2canvas(framedoc.documentElement, {
+              height: 1200
             }).then(function(canvas) {
-              content.innerHTML = '';
+              document.body.removeChild(frame);
               document.body.appendChild(canvas);
               console.log("Hello #2");
             });
           };
-
-          req.open('get', 'htmlTest4.html', true);
-          req.send();
         };
     </script>
   </body>

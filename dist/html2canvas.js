@@ -2712,9 +2712,29 @@ function html2canvas(nodeList, options) {
   }
 
   var node = ((nodeList === undefined) ? [document.documentElement] : ((nodeList.length) ? nodeList : [nodeList]))[0];
+
+  function getHeight() {
+    var children = Array.prototype.slice.call(node.ownerDocument.body.childNodes).map(function(child) {
+      return [child.innerHeight, child.scrollHeight];
+    }).reduce(function(arr, child) {
+      if(child[0])
+        arr.push(child[0]);
+
+      if(child[1])
+        arr.push(child[1]);
+
+      return arr;
+    }, []);
+
+    return Math.max.apply(this, [
+      node.scrollHeight,
+      node.ownerDocument.defaultView.innerHeight
+    ].concat(children));
+  }
+
   node.setAttribute(html2canvasNodeAttribute + index, index);
   var width = options.width != null ? options.width : node.ownerDocument.defaultView.innerWidth;
-  var height = options.height != null ? options.height : node.ownerDocument.defaultView.innerHeight;
+  var height = options.height != null ? options.height : getHeight();
   return renderDocument(node.ownerDocument, options, width, height, index).then(function(canvas) {
     if(typeof(options.onrendered) === "function") {
       log("options.onrendered is deprecated, html2canvas returns a Promise containing the canvas");
@@ -2740,6 +2760,7 @@ function renderDocument(document, options, windowWidth, windowHeight, html2canva
     var node = clonedWindow.document.querySelector(selector);
     var oncloneHandler = (typeof(options.onclone) === "function") ? Promise.resolve(options.onclone(clonedWindow.document)) : Promise.resolve(true);
     return oncloneHandler.then(function() {
+      options.document = document;
       return renderWindow(node, container, options, windowWidth, windowHeight);
     });
   });
@@ -2752,7 +2773,7 @@ function renderWindow(node, container, options, windowWidth, windowHeight) {
   var bounds = getBounds(node);
   var width = options.type === "view" ? windowWidth : documentWidth(clonedWindow.document);
   var height = options.type === "view" ? windowHeight : documentHeight(clonedWindow.document);
-  var renderer = new options.renderer(width, height, imageLoader, options, document);
+  var renderer = new options.renderer(width, height, imageLoader, options, options.document || document);
   var parser = new NodeParser(node, renderer, support, imageLoader, options);
   return parser.ready.then(function() {
     log("Finished rendering");
@@ -4335,9 +4356,9 @@ var LinearGradientContainer = require('../gradient/LinearGradientContainer');
 var RadialGradientContainer = require('../gradient/RadialGradientContainer');
 var log = require('../log');
 
-function CanvasRenderer(width, height) {
+function CanvasRenderer(width, height, imageLoader, options, doc) {
   Renderer.apply(this, arguments);
-  this.canvas = this.options.canvas || this.document.createElement("canvas");
+  this.canvas = this.options.canvas || doc.createElement("canvas");
   if(!this.options.canvas) {
     this.canvas.width = width;
     this.canvas.height = height;
@@ -4418,6 +4439,14 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
     return;
 
   this.save();
+
+  /*
+  shapes.filter(hasEntries).forEach(function(shape) {
+    this.ctx.strokeColor = 'white';
+    this.shape(shape).stroke();
+  }, this);
+  */
+
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);
@@ -6703,6 +6732,19 @@ function build(opts) {
         var tempCtx = c.getContext('2d');
         tempCtx.fillStyle = g;
         svg.CanvasBoundingBox.freeze = true;
+
+        if(rootView.width !== rootView.height) {
+          var scaleX = rootView.width > rootView.height ? rootView.width / rootView.height : 1;
+          var scaleY = rootView.height > rootView.width ? rootView.height / rootView.width : 1;
+          tempCtx.scale(scaleX, scaleY);
+        }
+
+        if(element.style('stroke-width').hasValue()) {
+          tempCtx.translate(-element.style('stroke-width').toPixels(), -element.style('stroke-width').toPixels());
+        }
+
+        
+        tempCtx.translate(-rootView.x, -rootView.y);
         tempSvg.render(tempCtx);
         svg.CanvasBoundingBox.freeze = false;
         return tempCtx.createPattern(c, 'no-repeat');
@@ -6731,17 +6773,19 @@ function build(opts) {
         this.attribute('y2', true).value = 0;
       }
 
+      var unit = Math.min(bb.width, bb.height);
+
       var x1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x + bb.width * this.attribute('x1').numValue()
+        ? bb.x + unit * this.attribute('x1').numValue()
         : this.attribute('x1').toPixels('x'));
       var y1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y + bb.height * this.attribute('y1').numValue()
+        ? bb.y + unit * this.attribute('y1').numValue()
         : this.attribute('y1').toPixels('y'));
       var x2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x + bb.width * this.attribute('x2').numValue()
+        ? bb.x + unit * this.attribute('x2').numValue()
         : this.attribute('x2').toPixels('x'));
       var y2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y + bb.height * this.attribute('y2').numValue()
+        ? bb.y + unit * this.attribute('y2').numValue()
         : this.attribute('y2').toPixels('y'));
 
       if(x1 == x2 && y1 == y2) return null;

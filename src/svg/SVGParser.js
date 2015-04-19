@@ -1860,6 +1860,19 @@ function build(opts) {
         var tempCtx = c.getContext('2d');
         tempCtx.fillStyle = g;
         svg.CanvasBoundingBox.freeze = true;
+
+        if(rootView.width !== rootView.height) {
+          var scaleX = rootView.width > rootView.height ? rootView.width / rootView.height : 1;
+          var scaleY = rootView.height > rootView.width ? rootView.height / rootView.width : 1;
+          tempCtx.scale(scaleX, scaleY);
+        }
+
+        if(element.style('stroke-width').hasValue()) {
+          tempCtx.translate(-element.style('stroke-width').toPixels(), -element.style('stroke-width').toPixels());
+        }
+
+        
+        tempCtx.translate(-rootView.x, -rootView.y);
         tempSvg.render(tempCtx);
         svg.CanvasBoundingBox.freeze = false;
         return tempCtx.createPattern(c, 'no-repeat');
@@ -1888,17 +1901,19 @@ function build(opts) {
         this.attribute('y2', true).value = 0;
       }
 
+      var unit = Math.min(bb.width, bb.height);
+
       var x1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x + bb.width * this.attribute('x1').numValue()
+        ? bb.x + unit * this.attribute('x1').numValue()
         : this.attribute('x1').toPixels('x'));
       var y1 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y + bb.height * this.attribute('y1').numValue()
+        ? bb.y + unit * this.attribute('y1').numValue()
         : this.attribute('y1').toPixels('y'));
       var x2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.x + bb.width * this.attribute('x2').numValue()
+        ? bb.x + unit * this.attribute('x2').numValue()
         : this.attribute('x2').toPixels('x'));
       var y2 = (this.gradientUnits == 'objectBoundingBox'
-        ? bb.y + bb.height * this.attribute('y2').numValue()
+        ? bb.y + unit * this.attribute('y2').numValue()
         : this.attribute('y2').toPixels('y'));
 
       if(x1 == x2 && y1 == y2) return null;

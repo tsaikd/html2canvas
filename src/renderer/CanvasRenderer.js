@@ -3,9 +3,9 @@ var LinearGradientContainer = require('../gradient/LinearGradientContainer');
 var RadialGradientContainer = require('../gradient/RadialGradientContainer');
 var log = require('../log');
 
-function CanvasRenderer(width, height) {
+function CanvasRenderer(width, height, imageLoader, options, doc) {
   Renderer.apply(this, arguments);
-  this.canvas = this.options.canvas || this.document.createElement("canvas");
+  this.canvas = this.options.canvas || doc.createElement("canvas");
   if(!this.options.canvas) {
     this.canvas.width = width;
     this.canvas.height = height;
@@ -86,6 +86,14 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
     return;
 
   this.save();
+
+  /*
+  shapes.filter(hasEntries).forEach(function(shape) {
+    this.ctx.strokeColor = 'white';
+    this.shape(shape).stroke();
+  }, this);
+  */
+
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);
