@@ -87,13 +87,13 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
 
   this.save();
 
-  /*
+/*
   shapes.filter(hasEntries).forEach(function(shape) {
-    this.ctx.strokeColor = 'white';
+    console.log(shape);
+    this.ctx.strokeStyle = 'rgb(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ')';
     this.shape(shape).stroke();
   }, this);
-  */
-
+*/
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);

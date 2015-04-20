@@ -2687,7 +2687,7 @@ var html2canvasCloneIndex = 0;
 function html2canvas(nodeList, options) {
   var index = html2canvasCloneIndex++;
   options = options || {};
-  if(!options.logging) {
+  if(options.debug) {
     html2canvas.logging = true;
     html2canvas.start = Date.now();
   }
@@ -2713,27 +2713,48 @@ function html2canvas(nodeList, options) {
 
   var node = ((nodeList === undefined) ? [document.documentElement] : ((nodeList.length) ? nodeList : [nodeList]))[0];
 
+  function getWidth() {
+    var children = Array.prototype.slice.call(node.ownerDocument.body.childNodes).map(function(child) {
+      var bounds = utils.getBounds(child);
+      return [bounds.x + child.innerWidth, bounds.x + child.scrollWidth];
+    }).reduce(function(arr, child) {
+      return arr.concat(child);
+    }, []);
+
+    return Math.max.apply(this, [
+      node.scrollWidth,
+      node.clientWidth,
+      node.offsetWidth,
+      document.documentElement.clientWidth,
+      document.documentElement.scrollWidth,
+      document.documentElement.offsetWidth
+    ].concat(children).filter(function(a) {
+      return a;
+    }));
+  }
+
   function getHeight() {
     var children = Array.prototype.slice.call(node.ownerDocument.body.childNodes).map(function(child) {
-      return [child.innerHeight, child.scrollHeight];
+      var bounds = utils.getBounds(child);
+      return [bounds.y + child.innerHeight, bounds.y + child.scrollHeight];
     }).reduce(function(arr, child) {
-      if(child[0])
-        arr.push(child[0]);
-
-      if(child[1])
-        arr.push(child[1]);
-
-      return arr;
+      return arr.concat(child);
     }, []);
 
     return Math.max.apply(this, [
       node.scrollHeight,
-      node.ownerDocument.defaultView.innerHeight
-    ].concat(children));
+      node.clientHeight,
+      node.offsetHeight,
+      document.documentElement.clientHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.offsetHeight
+    ].concat(children).filter(function(a) {
+      return a;
+    }));
   }
 
   node.setAttribute(html2canvasNodeAttribute + index, index);
-  var width = options.width != null ? options.width : node.ownerDocument.defaultView.innerWidth;
+  var width = options.width != null ? options.width : getWidth();
   var height = options.height != null ? options.height : getHeight();
   return renderDocument(node.ownerDocument, options, width, height, index).then(function(canvas) {
     if(typeof(options.onrendered) === "function") {
@@ -4440,13 +4461,13 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
 
   this.save();
 
-  /*
+/*
   shapes.filter(hasEntries).forEach(function(shape) {
-    this.ctx.strokeColor = 'white';
+    console.log(shape);
+    this.ctx.strokeStyle = 'rgb(' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ',' + Math.floor(Math.random() * 255) + ')';
     this.shape(shape).stroke();
   }, this);
-  */
-
+*/
   shapes.filter(hasEntries).forEach(function(shape) {
     this.shape(shape).clip();
   }, this);
@@ -6743,7 +6764,7 @@ function build(opts) {
           tempCtx.translate(-element.style('stroke-width').toPixels(), -element.style('stroke-width').toPixels());
         }
 
-        
+
         tempCtx.translate(-rootView.x, -rootView.y);
         tempSvg.render(tempCtx);
         svg.CanvasBoundingBox.freeze = false;

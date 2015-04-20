@@ -1871,7 +1871,7 @@ function build(opts) {
           tempCtx.translate(-element.style('stroke-width').toPixels(), -element.style('stroke-width').toPixels());
         }
 
-        
+
         tempCtx.translate(-rootView.x, -rootView.y);
         tempSvg.render(tempCtx);
         svg.CanvasBoundingBox.freeze = false;
