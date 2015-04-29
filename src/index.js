@@ -17,7 +17,7 @@ var html2canvasCloneIndex = 0;
 function html2canvas(nodeList, options) {
   var index = html2canvasCloneIndex++;
   options = options || {};
-  if(options.debug) {
+  if(!options.debug) {
     html2canvas.logging = true;
     html2canvas.start = Date.now();
   }
@@ -31,13 +31,29 @@ function html2canvas(nodeList, options) {
   options.strict = !!options.strict;
 
   if(typeof(nodeList) === "string") {
-    if(typeof(options.proxy) !== "string") {
-      return Promise.reject("Proxy must be used when rendering url");
-    }
-    var width = options.width != null ? options.width : window.innerWidth;
-    var height = options.height != null ? options.height : window.innerHeight;
-    return loadUrlDocument(absoluteUrl(nodeList), options.proxy, document, width, height, options).then(function(container) {
-      return renderWindow(container.contentWindow.document.documentElement, container, options, width, height);
+    log("Creating iframe for HTML contents");
+    return new Promise(function(complete) {
+      var frame = document.createElement("iframe");
+
+      var blob = new Blob([nodeList], { type : 'text/html' });
+      var src = URL.createObjectURL(blob);
+
+      frame.src = src;
+      frame.width = '100%';
+      frame.height = '100%';
+      frame.style.display = 'none';
+
+      document.body.appendChild(frame);
+
+      frame.onload = function() {
+        var framedoc = frame.contentDocument || frame.contentWindow.document;
+
+        html2canvas(framedoc.documentElement).then(function(canvas) {
+          document.body.removeChild(frame);
+          URL.revokeObjectURL(src);
+          complete(canvas);
+        });
+      };
     });
   }
 
@@ -86,6 +102,7 @@ function html2canvas(nodeList, options) {
   node.setAttribute(html2canvasNodeAttribute + index, index);
   var width = options.width != null ? options.width : getWidth();
   var height = options.height != null ? options.height : getHeight();
+
   return renderDocument(node.ownerDocument, options, width, height, index).then(function(canvas) {
     if(typeof(options.onrendered) === "function") {
       log("options.onrendered is deprecated, html2canvas returns a Promise containing the canvas");

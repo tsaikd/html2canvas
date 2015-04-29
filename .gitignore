@@ -10,4 +10,3 @@ dist/
 *.iml
 .idea/
 .DS_Store
-examples/*.html
