@@ -86,6 +86,7 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
     return;
 
   this.save();
+  this.ctx.setTransform(1, 0, 0, 1, 0, 0);
 
 /*
   shapes.filter(hasEntries).forEach(function(shape) {
@@ -94,7 +95,12 @@ CanvasRenderer.prototype.clip = function(shapes, callback, context) {
     this.shape(shape).stroke();
   }, this);
 */
+
   shapes.filter(hasEntries).forEach(function(shape) {
+    if(shape[0] === 'transform') {
+      this.setTransform(shape[1]);
+      return;
+    }
     this.shape(shape).clip();
   }, this);
   callback.call(context);

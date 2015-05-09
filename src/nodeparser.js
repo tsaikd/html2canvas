@@ -78,7 +78,8 @@ NodeParser.prototype.calculateOverflowClips = function() {
         container.appendToDOM();
       }
       container.borders = this.parseBorders(container);
-      var clip = (container.css('overflow') === "hidden") ? [container.borders.clip] : [];
+
+      var clip = (container.css('overflow') === "hidden") ? [["transform", container.parseTransform()], container.borders.clip] : [["transform", container.parseTransform()]];
       var cssClip = container.parseClip();
       if(cssClip && ["absolute", "fixed"].indexOf(container.css('position')) !== -1) {
         clip.push([["rect",
@@ -88,6 +89,7 @@ NodeParser.prototype.calculateOverflowClips = function() {
           cssClip.y2 - cssClip.y
         ]]);
       }
+
       container.clip = hasParentClip(container) ? container.parent.clip.concat(clip) : clip;
       container.backgroundClip = (container.css('overflow') !== "hidden") ? container.clip.concat([container.borders.clip]) : container.clip;
       if(isPseudoElement(container)) {
@@ -318,9 +320,7 @@ NodeParser.prototype.paintNode = function(container) {
   if(isStackingContext(container)) {
     this.renderer.setOpacity(container.opacity);
     this.renderer.save();
-    if(container.hasTransform()) {
-      this.renderer.setTransform(container.parseTransform());
-    }
+    this.renderer.setTransform(container.parseTransform());
   }
 
   if(container.node.nodeName === "INPUT" && container.node.type === "checkbox") {
@@ -737,16 +737,16 @@ function calculateCurvePoints(bounds, borderRadius, borders) {
     bottomWidth = width - brh,
     leftHeight = height - blv;
 
-    return {
-      topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
-      topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
-      topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
-      topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
-      bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
-      bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
-      bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
-      bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
-    };
+  return {
+    topLeftOuter: getCurvePoints(x, y, tlh, tlv).topLeft.subdivide(0.5),
+    topLeftInner: getCurvePoints(x + borders[3].width, y + borders[0].width, Math.max(0, tlh - borders[3].width), Math.max(0, tlv - borders[0].width)).topLeft.subdivide(0.5),
+    topRightOuter: getCurvePoints(x + topWidth, y, trh, trv).topRight.subdivide(0.5),
+    topRightInner: getCurvePoints(x + Math.min(topWidth, width + borders[3].width), y + borders[0].width, (topWidth > width + borders[3].width) ? 0 : trh - borders[3].width, trv - borders[0].width).topRight.subdivide(0.5),
+    bottomRightOuter: getCurvePoints(x + bottomWidth, y + rightHeight, brh, brv).bottomRight.subdivide(0.5),
+    bottomRightInner: getCurvePoints(x + Math.min(bottomWidth, width - borders[3].width), y + Math.min(rightHeight, height + borders[0].width), Math.max(0, brh - borders[1].width), brv - borders[2].width).bottomRight.subdivide(0.5),
+    bottomLeftOuter: getCurvePoints(x, y + leftHeight, blh, blv).bottomLeft.subdivide(0.5),
+    bottomLeftInner: getCurvePoints(x + borders[3].width, y + leftHeight, Math.max(0, blh - borders[3].width), blv - borders[2].width).bottomLeft.subdivide(0.5)
+  };
 }
 
 function bezierCurve(start, startControl, endControl, end) {

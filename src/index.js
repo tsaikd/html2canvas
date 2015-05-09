@@ -39,8 +39,8 @@ function html2canvas(nodeList, options) {
       var src = URL.createObjectURL(blob);
 
       frame.src = src;
-      frame.width = '100%';
-      frame.height = '100%';
+      frame.width = options.width || '100%';
+      frame.height = options.height || '100%';
       frame.style.display = 'none';
 
       document.body.appendChild(frame);
