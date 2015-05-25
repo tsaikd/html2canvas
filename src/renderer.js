@@ -17,6 +17,12 @@ Renderer.prototype.renderImage = function(container, bounds, borderData, imageCo
 
     var width = bounds.width - (borders[1].width + borders[3].width + paddingLeft + paddingRight);
     var height = bounds.height - (borders[0].width + borders[2].width + paddingTop + paddingBottom);
+
+    if (this.options.keepImageOriginalSize) {
+      width = imageContainer.image.width || width;
+      height = imageContainer.image.height || height;
+    }
+
     this.drawImage(
         imageContainer,
         0,
