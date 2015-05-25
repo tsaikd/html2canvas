@@ -1,6 +1,6 @@
 var SVGContainer = require('./svgcontainer');
 
-function SVGNodeContainer(node, _native) {
+function SVGNodeContainer(node, _native, options) {
     this.src = node;
     this.image = null;
     var self = this;
@@ -9,7 +9,11 @@ function SVGNodeContainer(node, _native) {
         self.image = new Image();
         self.image.onload = resolve;
         self.image.onerror = reject;
-        self.image.src = "data:image/svg+xml," + (new XMLSerializer()).serializeToString(node);
+        if (typeof(options.svgSerializer) === "function") {
+            self.image.src = "data:image/svg+xml," + options.svgSerializer.call(this, node);
+        } else {
+            self.image.src = "data:image/svg+xml," + (new XMLSerializer()).serializeToString(node);
+        }
         if (self.image.complete === true) {
             resolve(self.image);
         }
