@@ -47,13 +47,19 @@ exports.getBounds = function(node) {
     if (node.getBoundingClientRect) {
         var clientRect = node.getBoundingClientRect();
         var width = node.offsetWidth == null ? clientRect.width : node.offsetWidth;
+        var height = node.offsetHeight == null ? clientRect.height : node.offsetHeight;
+        if (node.nodeName.toLowerCase() === "svg" && node.style.overflow === "visible") {
+            var bbox = node.getBBox();
+            width = bbox.width;
+            height = bbox.height;
+        }
         return {
             top: clientRect.top,
             bottom: clientRect.bottom || (clientRect.top + clientRect.height),
             right: clientRect.left + width,
             left: clientRect.left,
             width:  width,
-            height: node.offsetHeight == null ? clientRect.height : node.offsetHeight
+            height: height
         };
     }
     return {};
