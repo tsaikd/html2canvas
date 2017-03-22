@@ -93,4 +93,5 @@ If you wish to contribute to the project, please send the pull requests to the d
 
 * svgSerializer: a function callback to customize your svg serializer
 * imageCrossOriginHandler: a function callback to set `crossOrigin` when fetching images, return `anonymous` or `use-credentials`
+* imageUrlHandler: a function callback to handle image URL before fetching
 * proxyUrlHandler: a function callback to create proxy URL instead of built-in `createProxyUrl()` function

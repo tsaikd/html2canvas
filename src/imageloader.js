@@ -18,11 +18,12 @@ function ImageLoader(options, support) {
 
 ImageLoader.prototype.findImages = function(nodes) {
     var images = [];
+    var imageUrlHandler = this.imageUrlHandler;
     nodes.reduce(function(imageNodes, container) {
         switch(container.node.nodeName) {
         case "IMG":
             return imageNodes.concat([{
-                args: [container.node.src],
+                args: [imageUrlHandler(container.node.src)],
                 method: "url"
             }]);
         case "svg":
@@ -43,8 +44,10 @@ ImageLoader.prototype.findBackgroundImage = function(images, container) {
 };
 
 ImageLoader.prototype.addImage = function(images, callback) {
+    var imageUrlHandler = this.imageUrlHandler;
     return function(newImage) {
         newImage.args.forEach(function(image) {
+            image = imageUrlHandler(image);
             if (!this.imageExists(images, image)) {
                 images.splice(0, 0, callback.call(this, newImage));
                 log('Added image #' + (images.length), typeof(image) === "string" ? image.substring(0, 100) : image);
@@ -59,7 +62,7 @@ ImageLoader.prototype.hasImageBackground = function(imageData) {
 
 ImageLoader.prototype.loadImage = function(imageData) {
     if (imageData.method === "url") {
-        var src = imageData.args[0];
+        var src = this.imageUrlHandler(imageData.args[0]);
         if (this.isSVG(src) && !this.support.svg && !this.options.allowTaint) {
             return new SVGContainer(src, this.options);
         } else if (src.match(/data:image\/.*;base64,/i)) {
@@ -91,6 +94,7 @@ ImageLoader.prototype.isSVG = function(src) {
 };
 
 ImageLoader.prototype.imageExists = function(images, src) {
+    src = this.imageUrlHandler(src);
     return images.some(function(image) {
         return image.src === src;
     });
@@ -118,9 +122,20 @@ ImageLoader.prototype.getPromise = function(container) {
 
 ImageLoader.prototype.get = function(src) {
     var found = null;
+    src = this.imageUrlHandler(src);
     return this.images.some(function(img) {
         return (found = img).src === src;
     }) ? found : null;
+};
+
+ImageLoader.prototype.imageUrlHandler = function(src) {
+    if (typeof(src) !== "string") {
+        return src;
+    }
+    if (this.options && typeof(this.options.imageUrlHandler) === "function") {
+        return this.options.imageUrlHandler(src);
+    }
+    return src;
 };
 
 ImageLoader.prototype.fetch = function(nodes) {
