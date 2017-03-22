@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var utils = require('./utils');
 var getBounds = utils.getBounds;
 var loadUrlDocument = require('./proxy').loadUrlDocument;
@@ -17,7 +18,12 @@ function FrameContainer(container, sameOrigin, options) {
         }
     })).then(function(container) {
         var html2canvas = require('./core');
-        return html2canvas(container.contentWindow.document.documentElement, {type: 'view', width: container.width, height: container.height, proxy: options.proxy, javascriptEnabled: options.javascriptEnabled, removeContainer: options.removeContainer, allowTaint: options.allowTaint, imageTimeout: options.imageTimeout / 2});
+        var frameOptions = _.clone(options);
+        frameOptions.type = 'view';
+        frameOptions.width = container.width;
+        frameOptions.height = container.height;
+        frameOptions.imageTimeout = options.imageTimeout / 2;
+        return html2canvas(container.contentWindow.document.documentElement, frameOptions);
     }).then(function(canvas) {
         return self.image = canvas;
     });

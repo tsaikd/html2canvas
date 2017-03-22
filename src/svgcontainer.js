@@ -1,13 +1,13 @@
 var XHR = require('./xhr');
 var decode64 = require('./utils').decode64;
 
-function SVGContainer(src) {
+function SVGContainer(src, options) {
     this.src = src;
     this.image = null;
     var self = this;
 
     this.promise = this.hasFabric().then(function() {
-        return (self.isInline(src) ? Promise.resolve(self.inlineFormatting(src)) : XHR(src));
+        return (self.isInline(src) ? Promise.resolve(self.inlineFormatting(src)) : XHR(src, options));
     }).then(function(svg) {
         return new Promise(function(resolve) {
             window.html2canvas.svg.fabric.loadSVGFromString(svg, self.createCanvas.call(self, resolve));

@@ -12,7 +12,7 @@ function Proxy(src, proxyUrl, document) {
     var callback = createCallback(supportsCORS);
     var url = createProxyUrl(proxyUrl, src, callback);
 
-    return supportsCORS ? XHR(url) : (jsonp(document, url, callback).then(function(response) {
+    return supportsCORS ? XHR(url, options) : (jsonp(document, url, callback).then(function(response) {
         return decode64(response.content);
     }));
 }
