@@ -88,3 +88,9 @@ For more information and examples, please visit the [homepage](http://html2canva
 ### Contributing ###
 
 If you wish to contribute to the project, please send the pull requests to the develop branch. Before submitting any changes, try and test that the changes work with all the support browsers. If some CSS property isn't supported or is incomplete, please create appropriate tests for it as well before submitting any code changes.
+
+### TsaiKD extra options ###
+
+* svgSerializer: a function callback to customize your svg serializer
+* imageCrossOriginHandler: a function callback to set `crossOrigin` when fetching images, return `anonymous` or `use-credentials`
+* proxyUrlHandler: a function callback to create proxy URL instead of built-in `createProxyUrl()` function

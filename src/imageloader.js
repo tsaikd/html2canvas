@@ -63,13 +63,13 @@ ImageLoader.prototype.loadImage = function(imageData) {
         if (this.isSVG(src) && !this.support.svg && !this.options.allowTaint) {
             return new SVGContainer(src, this.options);
         } else if (src.match(/data:image\/.*;base64,/i)) {
-            return new ImageContainer(src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, ''), false);
+            return new ImageContainer(src.replace(/url\(['"]{0,}|['"]{0,}\)$/ig, ''), false, this.options);
         } else if (this.isSameOrigin(src) || this.options.allowTaint === true || this.isSVG(src)) {
-            return new ImageContainer(src, false);
+            return new ImageContainer(src, false, this.options);
         } else if (this.support.cors && !this.options.allowTaint && this.options.useCORS) {
-            return new ImageContainer(src, true);
+            return new ImageContainer(src, true, this.options);
         } else if (this.options.proxy) {
-            return new ProxyImageContainer(src, this.options.proxy);
+            return new ProxyImageContainer(src, this.options.proxy, this.options);
         } else {
             return new DummyImageContainer(src);
         }

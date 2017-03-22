@@ -1,4 +1,4 @@
-function ImageContainer(src, cors) {
+function ImageContainer(src, cors, options) {
     this.src = src;
     this.image = new Image();
     var self = this;
@@ -7,7 +7,11 @@ function ImageContainer(src, cors) {
         self.image.onload = resolve;
         self.image.onerror = reject;
         if (cors) {
-            self.image.crossOrigin = "anonymous";
+            if (options && typeof(options.imageCrossOriginHandler) === "function") {
+                self.image.crossOrigin = options.imageCrossOriginHandler(src);
+            } else {
+                self.image.crossOrigin = "anonymous";
+            }
         }
         self.image.src = src;
         if (self.image.complete === true) {

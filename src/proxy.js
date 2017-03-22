@@ -4,13 +4,17 @@ var log = require('./log');
 var createWindowClone = require('./clone');
 var decode64 = utils.decode64;
 
-function Proxy(src, proxyUrl, document) {
+function Proxy(src, proxyUrl, document, options) {
     var supportsCORS = ('withCredentials' in new XMLHttpRequest());
     if (!proxyUrl) {
         return Promise.reject("No proxy configured");
     }
     var callback = createCallback(supportsCORS);
-    var url = createProxyUrl(proxyUrl, src, callback);
+    if (options && options.proxyUrlHandler && typeof(options.proxyUrlHandler) !== "function") {
+        return Promise.reject("Options proxyUrlHandler should be a function");
+    }
+    var proxyUrlHandler = getProxyUrlHandler(options);
+    var url = proxyUrlHandler(proxyUrl, src, callback);
 
     return supportsCORS ? XHR(url, options) : (jsonp(document, url, callback).then(function(response) {
         return decode64(response.content);
@@ -18,10 +22,14 @@ function Proxy(src, proxyUrl, document) {
 }
 var proxyCount = 0;
 
-function ProxyURL(src, proxyUrl, document) {
+function ProxyURL(src, proxyUrl, document, options) {
     var supportsCORSImage = ('crossOrigin' in new Image());
     var callback = createCallback(supportsCORSImage);
-    var url = createProxyUrl(proxyUrl, src, callback);
+    if (options && options.proxyUrlHandler && typeof(options.proxyUrlHandler) !== "function") {
+        return Promise.reject("Options proxyUrlHandler should be a function");
+    }
+    var proxyUrlHandler = getProxyUrlHandler(options);
+    var url = proxyUrlHandler(proxyUrl, src, callback);
     return (supportsCORSImage ? Promise.resolve(url) : jsonp(document, url, callback).then(function(response) {
         return "data:" + response.type + ";base64," + response.content;
     }));
@@ -55,6 +63,13 @@ function createProxyUrl(proxyUrl, src, callback) {
     return proxyUrl + "?url=" + encodeURIComponent(src) + (callback.length ? "&callback=html2canvas.proxy." + callback : "");
 }
 
+function getProxyUrlHandler(options) {
+    if (options && typeof(options.proxyUrlHandler) === "function") {
+        return options.proxyUrlHandler;
+    }
+    return createProxyUrl;
+}
+
 function documentFromHTML(src) {
     return function(html) {
         var parser = new DOMParser(), doc;
@@ -85,7 +100,7 @@ function documentFromHTML(src) {
 }
 
 function loadUrlDocument(src, proxy, document, width, height, options) {
-    return new Proxy(src, proxy, window.document).then(documentFromHTML(src)).then(function(doc) {
+    return new Proxy(src, proxy, window.document, options).then(documentFromHTML(src)).then(function(doc) {
         return createWindowClone(doc, document, width, height, options, 0, 0);
     });
 }
